@@ -177,7 +177,7 @@ páginas pueden llamar a la API y abrir el WebSocket (por defecto `http://localh
 Desde la raíz del repositorio (el `pom.xml` de la raíz solo agrega `backend/`, donde está el `pom.xml` padre):
 
 ```powershell
-mvn verify    # compila los 9 módulos y ejecuta las 88 pruebas unitarias
+mvn verify    # compila los 9 módulos y ejecuta las 97 pruebas unitarias
 ```
 
 Las pruebas no necesitan Docker ni Spring y todas rotulan sus partes con `// Arrange`, `// Act` y `// Assert`:
