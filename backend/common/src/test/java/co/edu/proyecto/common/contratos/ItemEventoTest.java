@@ -10,12 +10,14 @@ class ItemEventoTest {
 
     @Test
     void rechazaCantidadCero() {
+        // Act + Assert
         assertThatThrownBy(() -> new ItemEvento("SKU-1", "Libro", 0, new BigDecimal("1000")))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void rechazaPrecioCero() {
+        // Act + Assert
         assertThatThrownBy(() -> new ItemEvento("SKU-1", "Libro", 1, BigDecimal.ZERO))
                 .isInstanceOf(IllegalArgumentException.class);
     }

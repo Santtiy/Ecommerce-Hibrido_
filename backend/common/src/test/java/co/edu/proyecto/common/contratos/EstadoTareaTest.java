@@ -22,7 +22,7 @@ class EstadoTareaTest {
 
     @Test
     void cadaEstadoSabeSuTipoYSiEsUnExito() {
-        // Assert
+        // Act + Assert
         assertThat(EstadoTarea.PAYMENT_SUCCESS.tipo()).isEqualTo(TipoTarea.PAGO);
         assertThat(EstadoTarea.PAYMENT_SUCCESS.esExito()).isTrue();
         assertThat(EstadoTarea.PAYMENT_FAILED.tipo()).isEqualTo(TipoTarea.PAGO);
@@ -46,7 +46,7 @@ class EstadoTareaTest {
 
     @Test
     void exigirTipoRechazaUnEstadoDeOtraTarea() {
-        // Act y Assert
+        // Act + Assert
         assertThatThrownBy(() -> EstadoTarea.EMAIL_SENT.exigirTipo(TipoTarea.PAGO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("EMAIL_SENT")

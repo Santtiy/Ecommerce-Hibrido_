@@ -14,4 +14,23 @@
     <packaging>jar</packaging>
 
     <!-- Contratos y nombres compartidos: Java puro, sin dependencias. -->
+
+    <build>
+        <plugins>
+            <!-- Publica también common-1.0.0-tests.jar con los datos de prueba (DatosDePrueba) y el
+                 VerificadorDominioPuro. Los demás módulos lo usan solo en sus pruebas (scope test):
+                 no entra en ninguna imagen ni cambia la memoria. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

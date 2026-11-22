@@ -1,8 +1,5 @@
 package co.edu.proyecto.orden.infraestructura.bandejasalida;
 
-import co.edu.proyecto.orden.infraestructura.bandejasalida.MensajePendienteEntity;
-import co.edu.proyecto.orden.infraestructura.bandejasalida.PublicadorBandejaSalida;
-import co.edu.proyecto.orden.infraestructura.bandejasalida.SpringDataBandeja;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -40,26 +37,32 @@ class PublicadorBandejaSalidaTest {
 
     @Test
     void siKafkaConfirmaSeBorraElMensaje() {
+        // Arrange
         MensajePendienteEntity pendiente = mensaje("o-1");
         when(bandeja.findTop50ByOrderByIdAsc()).thenReturn(List.of(pendiente));
         when(kafka.send("new_orders", "o-1", "{}"))
                 .thenReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
 
+        // Act
         publicador.publicarPendientes();
 
+        // Assert
         verify(bandeja).delete(pendiente);
     }
 
     @Test
     void siKafkaFallaNoSeBorraNadaNiSeSigueConElSiguiente() {
+        // Arrange
         MensajePendienteEntity primero = mensaje("o-1");
         MensajePendienteEntity segundo = mock(MensajePendienteEntity.class);
         when(bandeja.findTop50ByOrderByIdAsc()).thenReturn(List.of(primero, segundo));
         when(kafka.send("new_orders", "o-1", "{}"))
                 .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("Kafka caído")));
 
+        // Act
         publicador.publicarPendientes();
 
+        // Assert
         verify(bandeja, never()).delete(any());
         verify(kafka, never()).send("new_orders", null, null);
     }

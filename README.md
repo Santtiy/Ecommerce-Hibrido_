@@ -65,7 +65,7 @@ Todos los servicios tienen los mismos paquetes:
 
 | Paquete | Qué contiene |
 |---|---|
-| `dominio/` | Reglas de negocio puras (entidades, value objects, reglas, estrategias) en Java puro, sin Spring. Lo comprueba `DominioPuroTest` |
+| `dominio/` | Reglas de negocio puras (entidades, value objects, reglas, estrategias) en Java puro, sin Spring. Lo comprueba el `DominioPuroTest` de cada servicio |
 | `aplicacion/` | Casos de uso que coordinan puertos, y las interfaces de esos puertos (`puertos/`). Única anotación de Spring permitida: `@Transactional` |
 | `infraestructura/` | Adaptadores, cada uno en el subpaquete de su tecnología: `rest/`, `persistencia/`, `kafka/`, `rabbitmq/`, `websocket/`. En order-api, `bandejasalida/` (outbox: JPA + Kafka) va junto |
 | `configuracion/` | Solo clases `@Configuration` |
@@ -99,11 +99,13 @@ páginas pueden llamar a la API y abrir el WebSocket (por defecto `http://localh
 ## Compilar y probar
 
 ```powershell
-mvn -B -f backend/pom.xml verify    # compila los 9 módulos y ejecuta las 56 pruebas unitarias
+mvn -B -f backend/pom.xml verify    # compila los 9 módulos y ejecuta las 88 pruebas unitarias
 ```
 
-Las pruebas no necesitan Docker ni Spring: dominio (AAA), servicios con Mockito (`@Mock`, `@InjectMocks`,
-`verify`) y una prueba que verifica que el dominio no importa ningún framework.
+Las pruebas no necesitan Docker ni Spring y todas rotulan sus partes con `// Arrange`, `// Act` y `// Assert`:
+dominio, servicios y consumidores con Mockito (`@Mock`, `@InjectMocks`, `verify`), el WebSocket con sesiones simuladas
+y, en cada servicio con `dominio/`, un `DominioPuroTest` que verifica que no importa ningún framework.
+Los datos de prueba (`DatosDePrueba`) y el `VerificadorDominioPuro` están una sola vez en el test-jar de `common`.
 
 ## Ejecutar
 

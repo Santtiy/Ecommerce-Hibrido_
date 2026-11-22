@@ -1,43 +1,53 @@
 package co.edu.proyecto.inventory.dominio;
 
+import co.edu.proyecto.common.contratos.EstadoTarea;
 import co.edu.proyecto.common.contratos.ItemEvento;
 import co.edu.proyecto.common.contratos.ProcesarOrden;
 import co.edu.proyecto.common.contratos.ResultadoTarea;
-import co.edu.proyecto.common.contratos.EstadoTarea;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.time.Instant;
 import java.util.List;
 
+import static co.edu.proyecto.common.pruebas.DatosDePrueba.AHORA;
+import static co.edu.proyecto.common.pruebas.DatosDePrueba.itemEvento;
+import static co.edu.proyecto.common.pruebas.DatosDePrueba.procesarOrden;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReglaInventarioTest {
 
-    private static final Instant AHORA = Instant.parse("2026-11-19T15:00:00Z");
-
     private final ReglaInventario regla = new ReglaInventario();
 
+    /** Un ítem SKU-i por cada cantidad, en ese orden. */
     private static ProcesarOrden ordenCon(int... cantidades) {
         List<ItemEvento> items = new ArrayList<>();
         for (int i = 0; i < cantidades.length; i++) {
-            items.add(new ItemEvento("SKU-" + i, "Producto " + i, cantidades[i], new BigDecimal("1000")));
+            items.add(itemEvento("SKU-" + i, "Producto " + i, cantidades[i], "1000"));
         }
-        return new ProcesarOrden("o-1", items, new BigDecimal("1000"), AHORA);
+        return procesarOrden(items);
     }
 
     @Test
     void diezUnidadesSeReservan() {
-        ResultadoTarea resultado = regla.evaluar(ordenCon(10), AHORA);
+        // Arrange
+        ProcesarOrden comando = ordenCon(10);
 
+        // Act
+        ResultadoTarea resultado = regla.evaluar(comando, AHORA);
+
+        // Assert
         assertThat(resultado.status()).isEqualTo(EstadoTarea.STOCK_RESERVED);
     }
 
     @Test
     void unItemExcedidoAunqueNoSeaElPrimeroDejaSinStock() {
-        ResultadoTarea resultado = regla.evaluar(ordenCon(1, 50), AHORA);
+        // Arrange
+        ProcesarOrden comando = ordenCon(1, 50);
 
+        // Act
+        ResultadoTarea resultado = regla.evaluar(comando, AHORA);
+
+        // Assert
         assertThat(resultado.status()).isEqualTo(EstadoTarea.STOCK_OUT_OF_STOCK);
         assertThat(resultado.detalle()).contains("SKU-1").contains("50");
     }

@@ -1,6 +1,5 @@
 package co.edu.proyecto.mensajeria.tareas;
 
-import co.edu.proyecto.common.contratos.ItemEvento;
 import co.edu.proyecto.common.contratos.ProcesarOrden;
 import co.edu.proyecto.common.contratos.ReglaTarea;
 import co.edu.proyecto.common.contratos.ResultadoTarea;
@@ -16,14 +15,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import static co.edu.proyecto.common.pruebas.DatosDePrueba.procesarOrden;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,6 +31,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class EjecutorTareaTest {
 
+    /** Hora del reloj del ejecutor: es la que debe salir en ocurridoEn. */
     private static final Instant AHORA = Instant.parse("2026-11-21T15:00:00Z");
 
     /** Igual que el ObjectMapper de Spring Boot: fechas en ISO-8601, no como números. */
@@ -52,8 +51,7 @@ class EjecutorTareaTest {
     }
 
     private static ProcesarOrden comando() {
-        ItemEvento item = new ItemEvento("SKU-1", "Televisor", 1, new BigDecimal("500000"));
-        return new ProcesarOrden("o-1", List.of(item), new BigDecimal("500000"), AHORA);
+        return procesarOrden("500000");
     }
 
     @Test
@@ -77,7 +75,7 @@ class EjecutorTareaTest {
         when(kafka.send(anyString(), anyString(), anyString()))
                 .thenReturn(CompletableFuture.failedFuture(new KafkaException("broker caído")));
 
-        // Act y Assert
+        // Act + Assert
         assertThatThrownBy(() -> ejecutor().ejecutar(comando()))
                 .isInstanceOf(ExecutionException.class)
                 .hasCauseInstanceOf(KafkaException.class);
@@ -88,7 +86,7 @@ class EjecutorTareaTest {
         // Arrange
         when(kafka.send(anyString(), anyString(), anyString())).thenThrow(new KafkaException("sin metadatos"));
 
-        // Act y Assert
+        // Act + Assert
         assertThatThrownBy(() -> ejecutor().ejecutar(comando()))
                 .isInstanceOf(KafkaException.class)
                 .hasMessageContaining("sin metadatos");

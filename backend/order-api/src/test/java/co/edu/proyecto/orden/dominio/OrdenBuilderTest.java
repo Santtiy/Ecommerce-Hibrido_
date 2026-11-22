@@ -12,22 +12,31 @@ class OrdenBuilderTest {
 
     @Test
     void sinItemsNoSePuedeConstruir() {
+        // Arrange
         OrdenBuilder builder = new OrdenBuilder().cliente("Ana Pérez");
 
+        // Act + Assert
         assertThatThrownBy(builder::construir).isInstanceOf(OrdenInvalidaException.class);
     }
 
     @Test
     void sinClienteNoSePuedeConstruir() {
+        // Arrange
         OrdenBuilder builder = new OrdenBuilder().agregarItem(LIBRO);
 
+        // Act + Assert
         assertThatThrownBy(builder::construir).isInstanceOf(OrdenInvalidaException.class);
     }
 
     @Test
     void unaOrdenNuevaNaceCreada() {
-        Orden orden = new OrdenBuilder().cliente("Ana Pérez").agregarItem(LIBRO).construir();
+        // Arrange
+        OrdenBuilder builder = new OrdenBuilder().cliente("Ana Pérez").agregarItem(LIBRO);
 
+        // Act
+        Orden orden = builder.construir();
+
+        // Assert
         assertThat(orden.estado()).isEqualTo(EstadoOrden.CREADA);
     }
 }

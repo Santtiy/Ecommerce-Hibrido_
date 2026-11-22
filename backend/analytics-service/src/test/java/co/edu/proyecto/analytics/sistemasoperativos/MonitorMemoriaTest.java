@@ -11,18 +11,26 @@ class MonitorMemoriaTest {
 
     @Test
     void reservarCeroMegasNoSePermite() {
+        // Act + Assert
         assertThatThrownBy(() -> monitor.reservarBloque(0)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void reservarUnMegaDevuelveUnBloqueDeUnMega() {
+        // Act
         byte[] bloque = monitor.reservarBloque(1);
 
+        // Assert
         assertThat(bloque).hasSize(1024 * 1024);
     }
 
     @Test
     void laMemoriaUsadaNoSuperaLaMaxima() {
-        assertThat(monitor.memoriaUsadaMb()).isLessThanOrEqualTo(monitor.memoriaMaximaMb());
+        // Act
+        long usada = monitor.memoriaUsadaMb();
+        long maxima = monitor.memoriaMaximaMb();
+
+        // Assert
+        assertThat(usada).isLessThanOrEqualTo(maxima);
     }
 }

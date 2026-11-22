@@ -65,6 +65,14 @@
                 <artifactId>common</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <!-- Datos de prueba y VerificadorDominioPuro (common-1.0.0-tests.jar), solo para las pruebas. -->
+            <dependency>
+                <groupId>co.edu.proyecto</groupId>
+                <artifactId>common</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+                <scope>test</scope>
+            </dependency>
             <dependency>
                 <groupId>co.edu.proyecto</groupId>
                 <artifactId>common-mensajeria</artifactId>

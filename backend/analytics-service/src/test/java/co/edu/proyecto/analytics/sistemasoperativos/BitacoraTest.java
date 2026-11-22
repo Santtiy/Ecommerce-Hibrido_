@@ -16,21 +16,27 @@ class BitacoraTest {
 
     @Test
     void alCrearseVaciaUnArchivoExistente() throws IOException {
+        // Arrange
         Path archivo = carpeta.resolve("ordenes.log");
         Files.writeString(archivo, "contenido viejo");
 
+        // Act
         new Bitacora(archivo.toString());
 
+        // Assert
         assertThat(Files.size(archivo)).isZero();
     }
 
     @Test
     void elTamanoDelArchivoEsLaSumaDeLosBytesEscritos() {
+        // Arrange
         Bitacora bitacora = new Bitacora(carpeta.resolve("ordenes.log").toString());
 
+        // Act
         OperacionES primera = bitacora.escribir("o-1;1000");
         OperacionES segunda = bitacora.escribir("o-2;2500");
 
+        // Assert
         assertThat(bitacora.tamanoBytes()).isEqualTo(primera.bytes() + segunda.bytes());
     }
 }

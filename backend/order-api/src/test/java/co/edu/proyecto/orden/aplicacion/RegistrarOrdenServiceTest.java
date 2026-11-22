@@ -49,8 +49,10 @@ class RegistrarOrdenServiceTest {
 
     @Test
     void guardaLaOrdenYDespuesEncolaSuEvento() {
+        // Act
         Orden orden = servicio.registrar("Ana Pérez", List.of(LIBRO));
 
+        // Assert
         InOrder secuencia = inOrder(ordenes, bandejaSalida);
         secuencia.verify(ordenes).guardar(orden);
         secuencia.verify(bandejaSalida).encolar(any(OrdenCreada.class));
@@ -58,9 +60,13 @@ class RegistrarOrdenServiceTest {
 
     @Test
     void elEventoLlevaTodosLosItemsYLaFechaDeCreacion() {
+        // Arrange
+        ArgumentCaptor<OrdenCreada> evento = ArgumentCaptor.forClass(OrdenCreada.class);
+
+        // Act
         Orden orden = servicio.registrar("Ana Pérez", List.of(LIBRO, USB));
 
-        ArgumentCaptor<OrdenCreada> evento = ArgumentCaptor.forClass(OrdenCreada.class);
+        // Assert
         verify(bandejaSalida).encolar(evento.capture());
         assertThat(evento.getValue().items()).hasSize(2);
         assertThat(evento.getValue().creadaEn()).isEqualTo(orden.creadaEn());
@@ -68,8 +74,10 @@ class RegistrarOrdenServiceTest {
 
     @Test
     void siGuardarFallaNoSeEncolaNingunEvento() {
+        // Arrange
         doThrow(new IllegalStateException("BD caída")).when(ordenes).guardar(any());
 
+        // Act + Assert
         assertThatThrownBy(() -> servicio.registrar("Ana Pérez", List.of(LIBRO)))
                 .isInstanceOf(IllegalStateException.class);
         verify(bandejaSalida, never()).encolar(any());
@@ -77,6 +85,7 @@ class RegistrarOrdenServiceTest {
 
     @Test
     void unaOrdenSinItemsNoTocaNiLaBaseDeDatosNiLaBandeja() {
+        // Act + Assert
         assertThatThrownBy(() -> servicio.registrar("Ana Pérez", List.of()))
                 .isInstanceOf(OrdenInvalidaException.class);
         verifyNoInteractions(ordenes, bandejaSalida);

@@ -19,9 +19,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.util.Optional;
 
+import static co.edu.proyecto.common.pruebas.DatosDePrueba.resultadoTarea;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -47,47 +47,59 @@ class RegistrarResultadoServiceTest {
     }
 
     private static ResultadoTarea resultado(Orden orden, EstadoTarea status) {
-        return new ResultadoTarea(orden.id().toString(), status, "detalle", Instant.now());
+        return resultadoTarea(orden.id().toString(), status);
     }
 
     @Test
     void unPagoExitosoDejaLaOrdenPagadaYLaGuarda() {
+        // Arrange
         Orden orden = ordenCreada();
         when(ordenes.buscarPorId(orden.id())).thenReturn(Optional.of(orden));
 
+        // Act
         servicio.registrar(TipoTarea.PAGO, resultado(orden, EstadoTarea.PAYMENT_SUCCESS));
 
+        // Assert
         assertThat(orden.estado()).isEqualTo(EstadoOrden.PAGADA);
         verify(ordenes).guardar(orden);
     }
 
     @Test
     void unPagoFallidoCancelaLaOrden() {
+        // Arrange
         Orden orden = ordenCreada();
         when(ordenes.buscarPorId(orden.id())).thenReturn(Optional.of(orden));
 
+        // Act
         servicio.registrar(TipoTarea.PAGO, resultado(orden, EstadoTarea.PAYMENT_FAILED));
 
+        // Assert
         assertThat(orden.estado()).isEqualTo(EstadoOrden.CANCELADA);
     }
 
     @Test
     void unPagoRepetidoNoVuelveAGuardarLaOrden() {
+        // Arrange
         Orden orden = ordenCreada();
         orden.confirmarPago();
         when(ordenes.buscarPorId(orden.id())).thenReturn(Optional.of(orden));
 
+        // Act
         servicio.registrar(TipoTarea.PAGO, resultado(orden, EstadoTarea.PAYMENT_SUCCESS));
 
+        // Assert
         verify(ordenes, never()).guardar(any());
     }
 
     @Test
     void unResultadoDeInventarioSoloSeAudita() {
+        // Arrange
         Orden orden = ordenCreada();
 
+        // Act
         servicio.registrar(TipoTarea.INVENTARIO, resultado(orden, EstadoTarea.STOCK_RESERVED));
 
+        // Assert
         verify(auditoria, times(1)).registrarSiNoExiste(any(RegistroAuditoria.class));
         verify(ordenes, never()).buscarPorId(any());
     }
@@ -113,7 +125,7 @@ class RegistrarResultadoServiceTest {
         // Arrange
         Orden orden = ordenCreada();
 
-        // Act y Assert
+        // Act + Assert
         assertThatThrownBy(() -> servicio.registrar(TipoTarea.PAGO, resultado(orden, EstadoTarea.STOCK_OUT_OF_STOCK)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("STOCK_OUT_OF_STOCK")
@@ -128,7 +140,7 @@ class RegistrarResultadoServiceTest {
         Orden orden = ordenCreada();
         when(ordenes.buscarPorId(orden.id())).thenReturn(Optional.empty());
 
-        // Act y Assert
+        // Act + Assert
         assertThatThrownBy(() -> servicio.registrar(TipoTarea.PAGO, resultado(orden, EstadoTarea.PAYMENT_SUCCESS)))
                 .isInstanceOf(OrdenNoEncontradaException.class)
                 .hasMessageContaining(orden.id().toString());

@@ -18,27 +18,35 @@ class OrdenTest {
 
     @Test
     void confirmarPagoLaDejaPagada() {
+        // Arrange
         Orden orden = ordenNueva();
 
+        // Act
         orden.confirmarPago();
 
+        // Assert
         assertThat(orden.estado()).isEqualTo(EstadoOrden.PAGADA);
     }
 
     @Test
     void cancelarLaDejaCancelada() {
+        // Arrange
         Orden orden = ordenNueva();
 
+        // Act
         orden.cancelar();
 
+        // Assert
         assertThat(orden.estado()).isEqualTo(EstadoOrden.CANCELADA);
     }
 
     @Test
     void unaOrdenPagadaNoSePuedeCancelar() {
+        // Arrange
         Orden orden = ordenNueva();
         orden.confirmarPago();
 
+        // Act + Assert
         assertThatThrownBy(orden::cancelar)
                 .isInstanceOf(EstadoInvalidoException.class)
                 .hasMessage("Una orden pagada no puede cancelarse");
@@ -47,33 +55,41 @@ class OrdenTest {
 
     @Test
     void noSePuedePagarDosVeces() {
+        // Arrange
         Orden orden = ordenNueva();
         orden.confirmarPago();
 
+        // Act + Assert
         assertThatThrownBy(orden::confirmarPago).isInstanceOf(EstadoInvalidoException.class);
     }
 
     @Test
     void noSePuedeCalcularElTotalDeUnaOrdenCancelada() {
+        // Arrange
         Orden orden = ordenNueva();
         orden.cancelar();
 
+        // Act + Assert
         assertThatThrownBy(() -> orden.calcularTotal(new SinDescuento(), new SinImpuesto()))
                 .isInstanceOf(EstadoInvalidoException.class);
     }
 
     @Test
     void noSePuedenAgregarProductosAUnaOrdenPagada() {
+        // Arrange
         Orden orden = ordenNueva();
         orden.confirmarPago();
 
+        // Act + Assert
         assertThatThrownBy(() -> orden.agregarProducto(LIBRO)).isInstanceOf(EstadoInvalidoException.class);
     }
 
     @Test
     void laListaDeItemsNoSePuedeModificarDesdeFuera() {
+        // Arrange
         Orden orden = ordenNueva();
 
+        // Act + Assert
         assertThatThrownBy(() -> orden.items().add(LIBRO)).isInstanceOf(UnsupportedOperationException.class);
     }
 }

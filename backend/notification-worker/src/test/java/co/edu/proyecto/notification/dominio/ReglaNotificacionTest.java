@@ -1,28 +1,25 @@
 package co.edu.proyecto.notification.dominio;
 
-import co.edu.proyecto.common.contratos.ItemEvento;
+import co.edu.proyecto.common.contratos.EstadoTarea;
 import co.edu.proyecto.common.contratos.ProcesarOrden;
 import co.edu.proyecto.common.contratos.ResultadoTarea;
-import co.edu.proyecto.common.contratos.EstadoTarea;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-
+import static co.edu.proyecto.common.pruebas.DatosDePrueba.AHORA;
+import static co.edu.proyecto.common.pruebas.DatosDePrueba.procesarOrden;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReglaNotificacionTest {
 
-    private static final Instant AHORA = Instant.parse("2026-11-19T15:00:00Z");
-
     @Test
     void siempreEnviaElCorreo() {
-        ItemEvento item = new ItemEvento("SKU-1", "Libro", 1, new BigDecimal("15000"));
-        ProcesarOrden comando = new ProcesarOrden("o-1", List.of(item), new BigDecimal("15000"), AHORA);
+        // Arrange
+        ProcesarOrden comando = procesarOrden("15000");
 
+        // Act
         ResultadoTarea resultado = new ReglaNotificacion().evaluar(comando, AHORA);
 
+        // Assert
         assertThat(resultado.status()).isEqualTo(EstadoTarea.EMAIL_SENT);
     }
 }

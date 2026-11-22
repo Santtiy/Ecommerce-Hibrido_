@@ -8,14 +8,14 @@ class TipoTareaTest {
 
     @Test
     void losNombresSonLosQueGuardaLaAuditoria() {
-        // Assert: auditoria_ordenes.origen ya tiene filas con estos textos
+        // Act + Assert: auditoria_ordenes.origen ya tiene filas con estos textos
         assertThat(TipoTarea.values()).extracting(Enum::name)
                 .containsExactly("PAGO", "INVENTARIO", "NOTIFICACION");
     }
 
     @Test
     void cadaTipoConoceSuColaYSuTopic() {
-        // Assert
+        // Act + Assert
         assertThat(TipoTarea.PAGO.cola()).isEqualTo("billing_queue");
         assertThat(TipoTarea.PAGO.topico()).isEqualTo("billing_events");
         assertThat(TipoTarea.INVENTARIO.cola()).isEqualTo("inventory_queue");

@@ -17,28 +17,37 @@ class CalculoTotalTest {
 
     @Test
     void conDescuentoEIvaCientoCincuentaMilDaCientoSesentaMilSeiscientosCincuenta() {
+        // Arrange
         Orden orden = ordenDe("150000");
 
+        // Act
         Dinero total = orden.calcularTotal(new DescuentoPorMonto(), new IvaColombia());
 
+        // Assert
         assertThat(total).isEqualTo(Dinero.de("160650", "COP"));
     }
 
     @Test
     void porDebajoDelUmbralSoloSeAplicaElIva() {
+        // Arrange
         Orden orden = ordenDe("90000");
 
+        // Act
         Dinero total = orden.calcularTotal(new DescuentoPorMonto(), new IvaColombia());
 
+        // Assert
         assertThat(total).isEqualTo(Dinero.de("107100", "COP"));
     }
 
     @Test
     void sinDescuentoNiImpuestoElTotalEsElSubtotal() {
+        // Arrange
         Orden orden = ordenDe("90000");
 
+        // Act
         Dinero total = orden.calcularTotal(new SinDescuento(), new SinImpuesto());
 
+        // Assert
         assertThat(total).isEqualTo(Dinero.de("90000", "COP"));
     }
 }

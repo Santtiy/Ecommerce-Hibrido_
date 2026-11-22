@@ -11,15 +11,25 @@ class DescuentoPorMontoTest {
 
     @Test
     void cienMilExactosNoTienenDescuento() {
-        Dinero resultado = descuento.aplicar(Dinero.de("100000", "COP"));
+        // Arrange
+        Dinero subtotal = Dinero.de("100000", "COP");
 
+        // Act
+        Dinero resultado = descuento.aplicar(subtotal);
+
+        // Assert
         assertThat(resultado).isEqualTo(Dinero.de("100000", "COP"));
     }
 
     @Test
     void porEncimaDeCienMilSeDescuentaElDiezPorCiento() {
-        Dinero resultado = descuento.aplicar(Dinero.de("200000", "COP"));
+        // Arrange
+        Dinero subtotal = Dinero.de("200000", "COP");
 
+        // Act
+        Dinero resultado = descuento.aplicar(subtotal);
+
+        // Assert
         assertThat(resultado).isEqualTo(Dinero.de("180000", "COP"));
     }
 }
