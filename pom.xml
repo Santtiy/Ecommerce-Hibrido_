@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Agregador de la raíz: solo existe para que "mvn verify" funcione desde la carpeta del repositorio.
+  El proyecto real (pom padre, versiones y los 8 módulos) está en backend/pom.xml.
+  Docker no lo usa: el Dockerfile compila directamente backend/.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>co.edu.proyecto</groupId>
+    <artifactId>ecommerce-hibrido-raiz</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>backend</module>
+    </modules>
+</project>

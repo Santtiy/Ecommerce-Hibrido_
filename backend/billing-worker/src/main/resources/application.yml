@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: billing-worker
+  main:
+    web-application-type: none
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:ecommerce}
+    password: ${RABBITMQ_PASSWORD:}
+    listener:
+      simple:
+        prefetch: 1                       # un mensaje a la vez por hilo
+        concurrency: 2                    # dos hilos consumiendo la cola
+        default-requeue-rejected: false   # tras agotar los reintentos va a failed_tasks
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:29092}
+    producer:
+      # El resultado se envía como JSON en texto (StringSerializer por defecto).
+      properties:
+        max.block.ms: 5000

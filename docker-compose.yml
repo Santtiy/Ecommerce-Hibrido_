@@ -1,0 +1,276 @@
+#file: noinspection ComposeUnknownValues
+# docker-compose.yml - archivo Compose PRINCIPAL y unico del proyecto.
+
+name: ecommerce-hibrido
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-microservicio: &microservicio
+  build: &build
+    context: .
+    dockerfile: backend/Dockerfile
+  pull_policy: never
+  restart: unless-stopped
+  logging: *logging
+  networks:
+    - ecommerce-net
+
+x-kafka: &kafka-env
+  KAFKA_BOOTSTRAP: kafka:9092
+
+x-rabbit: &rabbit-env
+  SPRING_RABBITMQ_HOST: rabbitmq
+  SPRING_RABBITMQ_PORT: 5672
+  SPRING_RABBITMQ_USERNAME: ecommerce
+  SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Falta RABBITMQ_PASSWORD. Copia .env.example a .env y rellenalo}
+
+services:
+
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: ecommerce
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD. Copia .env.example a .env y rellenalo}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=32MB
+      - -c
+      - max_connections=20
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=16MB
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecommerce -d ecommerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    deploy:
+      resources:
+        limits: { memory: 128M, cpus: "0.3" }
+    networks:
+      - ecommerce-net
+
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: kafka
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:9092,EXTERNAL://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: "-Xmx256m -Xms128m"
+    healthcheck:
+      test: ["CMD-SHELL", "KAFKA_HEAP_OPTS='-Xmx48m -Xms16m' KAFKA_JVM_PERFORMANCE_OPTS='-XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k' /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 90s
+      start_interval: 10s
+    deploy:
+      resources:
+        limits: { memory: 448M, cpus: "1.0" }
+    networks:
+      - ecommerce-net
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      RABBITMQ_DEFAULT_USER: ecommerce
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Falta RABBITMQ_PASSWORD. Copia .env.example a .env y rellenalo}
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "+S 1:1 +sbwt none +sbwtdcpu none +sbwtdio none"
+    ports:
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - type: bind
+        source: ./ops/aws/rabbitmq/20-aws.conf
+        target: /etc/rabbitmq/conf.d/20-aws.conf
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 90s
+      start_interval: 10s
+    deploy:
+      resources:
+        limits: { memory: 224M, cpus: "0.4" }
+    networks:
+      - ecommerce-net
+
+  billing-worker:
+    <<: *microservicio
+    image: ecommerce-hibrido-billing-worker:latest
+    build: { <<: *build, args: { MODULO: billing-worker } }
+    container_name: billing-worker
+    environment:
+      <<: [*kafka-env, *rabbit-env]
+      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
+    depends_on:
+      kafka: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    deploy:
+      resources:
+        limits: { memory: 160M, cpus: "0.25" }
+
+  inventory-worker:
+    <<: *microservicio
+    image: ecommerce-hibrido-inventory-worker:latest
+    build: { <<: *build, args: { MODULO: inventory-worker } }
+    container_name: inventory-worker
+    environment:
+      <<: [*kafka-env, *rabbit-env]
+      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
+    depends_on:
+      kafka: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    deploy:
+      resources:
+        limits: { memory: 160M, cpus: "0.25" }
+
+  notification-worker:
+    <<: *microservicio
+    image: ecommerce-hibrido-notification-worker:latest
+    build: { <<: *build, args: { MODULO: notification-worker } }
+    container_name: notification-worker
+    environment:
+      <<: [*kafka-env, *rabbit-env]
+      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
+    depends_on:
+      kafka: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    deploy:
+      resources:
+        limits: { memory: 160M, cpus: "0.25" }
+
+  dashboard-aggregator:
+    <<: *microservicio
+    image: ecommerce-hibrido-dashboard-aggregator:latest
+    build: { <<: *build, args: { MODULO: dashboard-aggregator } }
+    container_name: dashboard-aggregator
+    environment:
+      <<: *kafka-env
+      APP_ORIGENES: ${APP_ORIGENES:-http://localhost:8081}
+      JAVA_OPTS: "-Xmx96m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
+      SERVER_TOMCAT_THREADS_MAX: 15
+      SERVER_TOMCAT_THREADS_MIN_SPARE: 2
+    ports:
+      - "8081:8081"
+    depends_on:
+      kafka: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
+      start_interval: 5s
+    deploy:
+      resources:
+        limits: { memory: 192M, cpus: "0.4" }
+
+  order-api:
+    <<: *microservicio
+    image: ecommerce-hibrido-order-api:latest
+    build: { <<: *build, args: { MODULO: order-api } }
+    container_name: order-api
+    environment:
+      <<: *kafka-env
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_USER: ecommerce
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD. Copia .env.example a .env y rellenalo}
+      APP_ORIGENES: ${APP_ORIGENES:-http://localhost:8081}
+      JAVA_OPTS: "-Xmx128m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false -Duser.language=es -Duser.country=CO"
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 3
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 1
+      SERVER_TOMCAT_THREADS_MAX: 15
+      SERVER_TOMCAT_THREADS_MIN_SPARE: 2
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-db: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
+      start_interval: 5s
+    deploy:
+      resources:
+        limits: { memory: 256M, cpus: "0.5" }
+
+  order-processor:
+    <<: *microservicio
+    image: ecommerce-hibrido-order-processor:latest
+    build: { <<: *build, args: { MODULO: order-processor } }
+    container_name: order-processor
+    environment:
+      <<: [*kafka-env, *rabbit-env]
+      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
+    depends_on:
+      kafka: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      order-api: { condition: service_healthy }
+    deploy:
+      resources:
+        limits: { memory: 160M, cpus: "0.25" }
+
+  analytics-service:
+    <<: *microservicio
+    image: ecommerce-hibrido-analytics-service:latest
+    build: { <<: *build, args: { MODULO: analytics-service } }
+    container_name: analytics-service
+    environment:
+      <<: *kafka-env
+      ARCHIVO_BITACORA: /app/datos/ordenes.log
+      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
+    volumes:
+      - analytics-datos:/app/datos
+    depends_on:
+      kafka: { condition: service_healthy }
+      order-api: { condition: service_healthy }
+    deploy:
+      resources:
+        limits: { memory: 160M, cpus: "0.25" }
+
+volumes:
+  postgres-data:
+  analytics-datos:
+    name: analytics-datos
+
+networks:
+  ecommerce-net:
+    name: ecommerce-net

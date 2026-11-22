@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: order-api
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:ecommerce}
+    username: ${DB_USER:ecommerce}
+    password: ${DB_PASSWORD:}
+
+  # El esquema lo crea schema.sql (con sus CHECK). Hibernate no toca la base de datos.
+  sql:
+    init:
+      mode: always
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:29092}
+    producer:
+      # La bandeja de salida ya guarda el JSON: se envía como texto (StringSerializer por defecto).
+      properties:
+        max.block.ms: 5000
+    consumer:
+      auto-offset-reset: earliest
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.value.default.type: co.edu.proyecto.common.contratos.ResultadoTarea
+        spring.json.use.type.headers: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  origenes-permitidos: ${APP_ORIGENES:http://localhost:8081}

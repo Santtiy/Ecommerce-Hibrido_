@@ -1,0 +1,6 @@
+# Finales de línea fijos: los scripts Bash y la configuración de RabbitMQ se ejecutan en Ubuntu (EC2)
+# y arrancar-aws.sh falla si encuentra CRLF. Los scripts de PowerShell se quedan en CRLF.
+* text=auto
+*.sh   text eol=lf
+*.conf text eol=lf
+*.ps1  text eol=crlf

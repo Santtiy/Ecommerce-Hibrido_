@@ -1,0 +1,24 @@
+#file: noinspection ComposeUnknownValues
+# docker-compose.dev.yml - capa para DESARROLLO LOCAL en Windows (IntelliJ / ops\arrancar.ps1).
+
+services:
+
+  postgres-db:
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  kafka:
+    ports:
+      - "127.0.0.1:29092:29092"
+
+  rabbitmq:
+    ports:
+      - "127.0.0.1:5672:5672"
+
+  order-api:            { profiles: ["contenedores"] }
+  order-processor:      { profiles: ["contenedores"] }
+  billing-worker:       { profiles: ["contenedores"] }
+  inventory-worker:     { profiles: ["contenedores"] }
+  notification-worker:  { profiles: ["contenedores"] }
+  dashboard-aggregator: { profiles: ["contenedores"] }
+  analytics-service:    { profiles: ["contenedores"] }
