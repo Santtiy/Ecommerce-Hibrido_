@@ -51,7 +51,7 @@ completa con las correcciones de la auditoría: ver [`docs/correcciones.md`](doc
 
 | Carpeta | Qué contiene |
 |---|---|
-| `backend/` | Proyecto Maven (`pom.xml` padre), los 8 módulos Java y el `Dockerfile` |
+| `backend/` | Proyecto Maven (`pom.xml` padre), los 9 módulos Java (`common`, `common-mensajeria` y los 7 servicios) y el `Dockerfile` |
 | `frontend/` | Dashboard web (`index.html`). Lo sirve `dashboard-aggregator` en `http://localhost:8081`: Maven lo empaqueta como `classpath:/static` |
 | `ops/` | Scripts de arranque/parada (local y AWS) |
 | `docs/` | Documentación |
@@ -73,6 +73,9 @@ Todos los servicios tienen los mismos paquetes:
 Los nombres de topics, colas, exchanges, estados y grupos están en un solo sitio:
 `backend/common/src/main/java/co/edu/proyecto/common/nombres/`.
 
+La configuración de Kafka y RabbitMQ que comparten los servicios (reintentos, JSON, fanout `order_tasks`, cola de
+fallidos) está en `backend/common-mensajeria/`; cada servicio la importa con `@Import` desde su `ConfiguracionMensajeria`.
+
 ## Requisitos
 
 | Herramienta | Versión |
@@ -93,7 +96,7 @@ páginas pueden llamar a la API y abrir el WebSocket (por defecto `http://localh
 ## Compilar y probar
 
 ```powershell
-mvn -B -f backend/pom.xml verify    # compila los 8 módulos y ejecuta las 56 pruebas unitarias
+mvn -B -f backend/pom.xml verify    # compila los 9 módulos y ejecuta las 56 pruebas unitarias
 ```
 
 Las pruebas no necesitan Docker ni Spring: dominio (AAA), servicios con Mockito (`@Mock`, `@InjectMocks`,

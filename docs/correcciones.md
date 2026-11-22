@@ -10,12 +10,12 @@
 | C-06 | `calcularTotal()` funcionaba en cualquier estado | Solo en `CREADA` | `Orden`, `OrdenTest.noSePuedeCalcularElTotalDeUnaOrdenCancelada` |
 | C-07 | La fecha del evento era la de publicación | Usa `creadaEn` de la orden | `RegistrarOrdenService.aEvento`, `RegistrarOrdenServiceTest` |
 | C-08 | Estado del dashboard y analytics en memoria, sin límite y perdido al reiniciar | Relectura de los topics al arrancar; máximo 1.000 órdenes en el tablero | `ConsumidorResultados` (dashboard), `ConsumidorNuevasOrdenes` (analytics), `TableroOrdenes` |
-| C-09 | Los consumidores de Kafka no tenían reintentos propios | `DefaultErrorHandler` (3 intentos, 1 s) en cada servicio | `ConfiguracionKafka` de cada servicio |
+| C-09 | Los consumidores de Kafka no tenían reintentos propios | `DefaultErrorHandler` (3 intentos, 1 s) en cada servicio | `ConfiguracionKafkaBase` (common-mensajeria), importada por la `ConfiguracionMensajeria` de cada consumidor |
 | C-10 | Resultados repetidos podían duplicar efectos | Auditoría con `UNIQUE` + `ON CONFLICT DO NOTHING`; el estado solo cambia si sigue `CREADA`; tablero y agregador idempotentes | `SpringDataAuditoria`, `RegistrarResultadoServiceTest.unPagoRepetidoNoVuelveAGuardarLaOrden`, `AgregadorVentasTest` |
 | C-11 | Releer `new_orders` duplicaría la bitácora | La bitácora se vacía al arrancar | `Bitacora`, `BitacoraTest.alCrearseVaciaUnArchivoExistente` |
-| C-12 | CORS y WebSocket abiertos a `*` | `APP_ORIGENES` (por defecto `http://localhost:8081`) | `ConfiguracionCors`, `ConfiguracionWebSocket` |
+| C-12 | CORS y WebSocket abiertos a `*` | `APP_ORIGENES` (por defecto `http://localhost:8081`) | `ConfiguracionWeb` (order-api), `ConfiguracionWebSocket` (dashboard) |
 | C-13 | Esquema generado por Hibernate, sin `CHECK` | `schema.sql` con `CHECK` y `UNIQUE`; `ddl-auto: none` | `backend/order-api/src/main/resources/schema.sql` |
-| C-14 | `rabbitListenerContainerFactory` repetido sin aportar | Eliminado: basta el `Jackson2JsonMessageConverter` | `ConfiguracionRabbit` de los workers |
+| C-14 | `rabbitListenerContainerFactory` repetido sin aportar | Eliminado: basta el `Jackson2JsonMessageConverter` | `ConfiguracionRabbitBase` (common-mensajeria) |
 | C-15 | Fábricas de productor y consumidor de Kafka escritas a mano en 6 servicios | Todo en `application.yml`; productores envían JSON como texto | `application.yml` de cada servicio |
 | C-16 | Nombres de topics y colas escritos como texto en varios sitios | Clases de constantes | `common/.../nombres/` |
 | C-17 | `PublicadorEventosLog` y perfil `sin-kafka` sobrantes | No existen | — |

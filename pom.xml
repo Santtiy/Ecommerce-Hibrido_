@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Agregador de la raíz: solo existe para que "mvn verify" funcione desde la carpeta del repositorio.
-  El proyecto real (pom padre, versiones y los 8 módulos) está en backend/pom.xml.
+  El proyecto real (pom padre, versiones y los 9 módulos) está en backend/pom.xml.
   Docker no lo usa: el Dockerfile compila directamente backend/.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"

@@ -7,11 +7,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /** Solo los orígenes configurados (el panel del dashboard) pueden llamar a POST /order desde el navegador. */
 @Configuration
-public class ConfiguracionCors implements WebMvcConfigurer {
+public class ConfiguracionWeb implements WebMvcConfigurer {
 
     private final String[] origenesPermitidos;
 
-    public ConfiguracionCors(@Value("${app.origenes-permitidos}") String[] origenesPermitidos) {
+    public ConfiguracionWeb(@Value("${app.origenes-permitidos}") String[] origenesPermitidos) {
         this.origenesPermitidos = origenesPermitidos;
     }
 

@@ -6,6 +6,7 @@ WORKDIR /build
 
 COPY backend/pom.xml backend/
 COPY backend/common/pom.xml backend/common/
+COPY backend/common-mensajeria/pom.xml backend/common-mensajeria/
 COPY backend/order-api/pom.xml backend/order-api/
 COPY backend/analytics-service/pom.xml backend/analytics-service/
 COPY backend/order-processor/pom.xml backend/order-processor/
