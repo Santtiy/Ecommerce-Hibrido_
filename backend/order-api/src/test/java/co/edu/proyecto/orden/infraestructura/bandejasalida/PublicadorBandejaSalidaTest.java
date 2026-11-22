@@ -10,8 +10,11 @@ import org.springframework.kafka.support.SendResult;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -66,5 +69,23 @@ class PublicadorBandejaSalidaTest {
         // Assert
         verify(bandeja, never()).delete(any());
         verifyNoInteractions(segundo); // el segundo mensaje ni se leyó: espera al siguiente ciclo
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void siElHiloSeInterrumpeNoSeBorraNadaYLaInterrupcionSeConserva() throws Exception {
+        // Arrange
+        MensajePendienteEntity pendiente = mensaje("o-1");
+        when(bandeja.findTop50ByOrderByIdAsc()).thenReturn(List.of(pendiente));
+        CompletableFuture<SendResult<String, String>> envio = mock(CompletableFuture.class);
+        when(envio.get(anyLong(), any(TimeUnit.class))).thenThrow(new InterruptedException());
+        when(kafka.send("new_orders", "o-1", "{}")).thenReturn(envio);
+
+        // Act
+        publicador.publicarPendientes();
+
+        // Assert
+        verify(bandeja, never()).delete(any());
+        assertThat(Thread.interrupted()).isTrue(); // Thread.interrupted() además limpia la marca para las demás pruebas
     }
 }

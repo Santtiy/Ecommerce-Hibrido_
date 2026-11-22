@@ -1,7 +1,5 @@
 package co.edu.proyecto.orden.infraestructura.bandejasalida;
 
-import co.edu.proyecto.orden.infraestructura.bandejasalida.MensajePendienteEntity;
-import co.edu.proyecto.orden.infraestructura.bandejasalida.SpringDataBandeja;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -43,6 +41,10 @@ public class PublicadorBandejaSalida {
             kafka.send(mensaje.getTopico(), mensaje.getClave(), mensaje.getContenido())
                     .get(ESPERA_CONFIRMACION_SEGUNDOS, TimeUnit.SECONDS);
             return true;
+        } catch (InterruptedException e) {
+            // La aplicación se está apagando: se conserva la interrupción y el evento queda en la bandeja.
+            Thread.currentThread().interrupt();
+            return false;
         } catch (Exception e) {
             log.warn("Kafka no confirmó el evento de la orden {}; se reintentará: {}", mensaje.getClave(), e.getMessage());
             return false;
