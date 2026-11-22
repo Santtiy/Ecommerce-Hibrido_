@@ -1,0 +1,156 @@
+/* Base común de la tienda y del panel de administración: tokens de color (claro y oscuro), tipografía, paneles,
+   campos y botones. Cada página añade lo suyo en tienda.css o admin.css. Una sola familia tipográfica; la
+   monoespaciada solo para datos y código (SKU, orderId, estados, JSON). */
+
+:root {
+  --papel: #f3f0e8; --papel-2: #ebe7dc; --tarjeta: #fbfaf6; --campo: #ffffff; --punto-fondo: #d8d2c3;
+  --tinta: #17160f; --tinta-2: #57534a; --tinta-3: #6b665a; --linea: #dcd6c8; --linea-fuerte: #b8b1a0;
+  --senal: #e8541c; --senal-oscura: #c9430f; --senal-suave: #fbe3d6;
+  --ok: #1f7a4d; --ok-texto: #155c39; --ok-suave: #dcefe2;
+  --fallo: #b8322a; --fallo-texto: #8e231d; --fallo-suave: #f8dfdb;
+  --pend-texto: #6e4c08; --pend-suave: #f3e8cc;
+  --neutro-suave: #e7e3d8;
+  --destacado: #fde9c8; --hover: #f4f1e9;
+  /* Banda: superficie sólida de la cabecera del panel y del encabezado de su tabla. En claro es la tinta. */
+  --banda: #17160f; --sobre-banda: #f3f0e8; --sobre-banda-2: #bdb7a8; --punto-banda: #34332b; --fallo-sobre-banda: #ff9b91;
+  /* Texto sobre la tinta (filtro o paso seleccionado) y sobre los colores de estado sólidos. */
+  --sobre-tinta: #f3f0e8; --sobre-tinta-2: #bdb7a8;
+  --sobre-estado: #ffffff;
+  --fuente: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --radio: 6px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --papel: #121210; --papel-2: #1b1b18; --tarjeta: #1a1a17; --campo: #22221e; --punto-fondo: #2a2a25;
+    --tinta: #efebe1; --tinta-2: #b5afa1; --tinta-3: #a09a8c; --linea: #2f2e29; --linea-fuerte: #4a483f;
+    --senal: #ff6a2b; --senal-oscura: #ff8550; --senal-suave: #4a2a19;
+    --ok: #4cc488; --ok-texto: #7fdcab; --ok-suave: #16301f;
+    --fallo: #ff7468; --fallo-texto: #ff9b91; --fallo-suave: #3b1b18;
+    --pend-texto: #f0c871; --pend-suave: #342912;
+    --neutro-suave: #2a2a25;
+    --destacado: #3d2f12; --hover: #20201c;
+    /* En oscuro la banda no se invierte (sería una franja clara deslumbrante): es un gris cálido sobre el fondo. */
+    --banda: #2f2e29; --sobre-banda: #efebe1; --sobre-banda-2: #b5afa1; --punto-banda: #4a483f; --fallo-sobre-banda: #ff9b91;
+    --sobre-tinta: #121210; --sobre-tinta-2: #57534a;
+    --sobre-estado: #121210;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--linea-fuerte) transparent; }
+body {
+  margin: 0; min-height: 100vh; color: var(--tinta); font: 400 15px/1.5 var(--fuente);
+  font-variant-numeric: tabular-nums;
+  background-color: var(--papel);
+  background-image: radial-gradient(var(--punto-fondo) 1px, transparent 1.3px);
+  background-size: 22px 22px;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--senal-suave); color: var(--tinta); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+input { caret-color: var(--senal); accent-color: var(--senal); }
+:focus-visible { outline: 2px solid var(--senal); outline-offset: 2px; }
+code { font-family: var(--mono); font-size: .9em; }
+[hidden] { display: none !important; }
+a { color: inherit; text-underline-offset: 3px; }
+
+h1 { margin: 0; font-size: 2rem; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; text-wrap: balance; }
+h2 { margin: 0 0 16px; font-size: 1.3125rem; line-height: 1.25; font-weight: 750; letter-spacing: -.02em; }
+h1:focus, h2:focus { outline: none; }
+
+.icono { width: 1.15em; height: 1.15em; flex: none; }
+
+/* ---------- Paneles ---------- */
+.panel { min-width: 0; background: var(--tarjeta); border: 1px solid var(--linea); border-radius: var(--radio); padding: 20px 22px; }
+.vacio { margin: 0; padding: 20px 8px; text-align: center; font-size: .875rem; color: var(--tinta-3); }
+.meta { margin: 0 0 12px; font-size: .8125rem; color: var(--tinta-2); }
+
+/* ---------- Botones de ejemplo (escenarios): título y una línea de detalle ---------- */
+.etiqueta-grupo { margin: 0 0 8px; font-size: .8125rem; font-weight: 600; color: var(--tinta-2); }
+.etiqueta-grupo span { font-weight: 400; color: var(--tinta-3); }
+.botones-ejemplo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.botones-ejemplo.invalidos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.botones-ejemplo button {
+  display: grid; gap: 1px; text-align: left; padding: 9px 11px; font-size: .875rem; font-weight: 650;
+  background: var(--papel-2); border: 1px solid var(--linea); border-radius: 4px;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.botones-ejemplo button:hover { border-color: var(--tinta); background: var(--tarjeta); }
+.botones-ejemplo small { font-size: .75rem; font-weight: 400; color: var(--tinta-2); }
+.botones-ejemplo button.invalida { border-style: dashed; border-color: var(--fallo); background: transparent; }
+.botones-ejemplo button.invalida:hover { background: var(--fallo-suave); }
+
+/* ---------- Campos ---------- */
+label { display: block; margin-bottom: 6px; font-size: .875rem; font-weight: 600; }
+input {
+  width: 100%; min-width: 0; padding: 9px 11px; font-size: .9375rem; background: var(--campo);
+  border: 1px solid var(--linea-fuerte); border-radius: 4px; transition: border-color .15s ease;
+}
+input::placeholder { color: var(--tinta-3); }
+input:hover { border-color: var(--tinta-3); }
+input:focus { outline: 2px solid var(--senal); outline-offset: 0; border-color: var(--senal); }
+input[aria-invalid="true"] { border-color: var(--fallo); background: var(--fallo-suave); }
+.error-campo { margin: 6px 0 0; font-size: .8125rem; font-weight: 600; color: var(--fallo-texto); }
+select {
+  padding: 8px 32px 8px 10px; font: inherit; font-size: .875rem; color: var(--tinta); background: var(--campo)
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23857f72' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border: 1px solid var(--linea-fuerte); border-radius: 4px; appearance: none; cursor: pointer;
+}
+select:focus { outline: 2px solid var(--senal); outline-offset: 0; border-color: var(--senal); }
+/* Visible solo para lectores de pantalla (por ejemplo, la etiqueta del buscador). */
+.solo-lector { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- Botones ---------- */
+.boton-primario {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 18px; border: 0; border-radius: 4px; background: var(--senal); color: #17160f;
+  font-size: 1rem; font-weight: 700; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .18);
+  transition: background-color .15s ease;
+}
+.boton-primario:hover:not(:disabled) { background: var(--senal-oscura); }
+.boton-primario:active:not(:disabled) { box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .18); }
+.boton-primario:disabled { opacity: .5; }
+.boton-secundario {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px;
+  font-size: .875rem; font-weight: 650; text-decoration: none; background: transparent;
+  border: 1px solid var(--tinta); border-radius: 4px;
+}
+.boton-secundario:hover { background: var(--tinta); color: var(--papel); }
+.boton-icono {
+  display: inline-grid; place-items: center; width: 2rem; height: 2rem; padding: 0; background: transparent;
+  border: 1px solid var(--linea-fuerte); border-radius: 4px; color: var(--tinta-2);
+}
+.boton-icono .icono { width: 15px; height: 15px; }
+.boton-icono:hover { border-color: var(--tinta); color: var(--tinta); }
+
+/* ---------- Estados de los workers (enum tal como viaja por Kafka) ---------- */
+.estado { display: inline-block; padding: 2px 7px; border-radius: 4px; font: 500 .6875rem/1.5 var(--mono); white-space: nowrap; }
+.estado.ok { background: var(--ok-suave); color: var(--ok-texto); }
+.estado.fallo { background: var(--fallo-suave); color: var(--fallo-texto); }
+.estado.pendiente { background: var(--neutro-suave); color: var(--tinta-2); }
+
+/* ---------- Cuerpos JSON ---------- */
+.cuerpos { display: grid; gap: 6px; margin-top: 16px; }
+details { border: 1px solid var(--linea); border-radius: 4px; overflow: hidden; }
+summary { cursor: pointer; padding: 8px 12px; font-size: .8125rem; font-weight: 600; color: var(--tinta-2); }
+summary:hover { color: var(--tinta); }
+details pre {
+  margin: 0; padding: 12px; max-height: 280px; overflow: auto; border-top: 1px solid var(--linea);
+  background: var(--papel-2); font: .8125rem/1.5 var(--mono); white-space: pre-wrap; word-break: break-all;
+}
+.detalles { margin: 6px 0 0; padding-left: 20px; font-size: .875rem; color: var(--fallo-texto); }
+.detalles li { font-family: var(--mono); font-size: .8125rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
+}
+
+@media (max-width: 520px) {
+  .botones-ejemplo.invalidos { grid-template-columns: minmax(0, 1fr); }
+}

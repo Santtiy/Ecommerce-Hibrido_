@@ -1,24 +1,32 @@
-// Vista de las órdenes en vivo: indicador de conexión, tabla incremental, filtro por resultado y búsqueda.
+// Panel de administración, tabla de órdenes en vivo: indicador de conexión, filas incrementales, filtro por resultado,
+// búsqueda y selección de una orden (para ver su recorrido).
 
-import { ETAPAS, URL_WS, SEGUNDOS_REINTENTO } from './config.js';
-import { claseEstado, resultadoOrden, etapasTerminadas, NOMBRE_RESULTADO } from './estados.js';
-import { datosEnviada } from './registro.js';
-import { formatoHora, formatoPesos, formatoNumero, crear } from './formato.js';
+import { porId, crear } from '../dom.js';
+import { ETAPAS, URL_WS, SEGUNDOS_REINTENTO, MAXIMO_ORDENES, PROGRESO_PENDIENTE } from '../config.js';
+import { claseEstado, resultadoOrden, etapasTerminadas, NOMBRE_RESULTADO } from '../estados.js';
+import { datosEnviada } from '../registro.js';
+import { formatoHora, formatoPesos, formatoNumero } from '../formato.js';
 
-const $ = (id) => document.getElementById(id);
-const PENDIENTE = { payment: 'pending', stock: 'pending', email: 'pending' };
 const COLUMNA_RESULTADO = ETAPAS.length + 1;
 
 // orderId → { fila, progreso, resultado }
 const ordenes = new Map();
 const filtro = { resultado: 'todas', texto: '' };
+let seleccionada = null;
+let alSeleccionar = () => {};
+
+export function alSeleccionarOrden(oyente) {
+  alSeleccionar = oyente;
+}
 
 function crearFila(orderId) {
   const fila = crear('tr');
   fila.dataset.orden = orderId;
+  fila.addEventListener('click', () => seleccionarOrden(orderId));
   const celdaOrden = crear('td', 'col-orden');
-  const id = crear('span', 'id', orderId.slice(0, 8));
-  id.title = orderId;
+  const id = crear('button', 'id', orderId.slice(0, 8));
+  id.type = 'button';
+  id.title = `Ver el recorrido de ${orderId}`;
   celdaOrden.append(id, crear('span', 'extra'));
   const etapas = ETAPAS.map((etapa) => {
     const celda = crear('td', 'col-etapa');
@@ -30,7 +38,7 @@ function crearFila(orderId) {
   const celdaResultado = crear('td', 'col-resultado');
   celdaResultado.append(crear('span', 'resultado'), crear('span', 'hora'));
   fila.append(celdaOrden, ...etapas, celdaResultado);
-  $('filas').prepend(fila);
+  porId('filas').prepend(fila);
   return fila;
 }
 
@@ -74,6 +82,7 @@ function coincide(orderId, entrada) {
 export function actualizarOrden(orderId, progreso, inicial = false) {
   let entrada = ordenes.get(orderId);
   if (!entrada) {
+    if (ordenes.size >= MAXIMO_ORDENES) quitarPrimeraOrden();
     entrada = { fila: crearFila(orderId) };
     ordenes.set(orderId, entrada);
     pintarCliente(entrada.fila, orderId);
@@ -95,16 +104,46 @@ export function actualizarOrden(orderId, progreso, inicial = false) {
       hora.title = '';
       destacar(fila);
     }
+    if (orderId === seleccionada) alSeleccionar(orderId);
   }
   fila.hidden = !coincide(orderId, entrada);
+}
+
+function quitarPrimeraOrden() {
+  const orderId = ordenes.keys().next().value;
+  ordenes.get(orderId).fila.remove();
+  ordenes.delete(orderId);
+  if (orderId === seleccionada) {
+    seleccionada = null;
+    alSeleccionar(null);
+  }
 }
 
 /** Orden recién aceptada por order-api (202): aparece al instante, aunque los workers aún no hayan respondido. */
 export function registrarEnviada(orderId) {
   const entrada = ordenes.get(orderId);
-  if (!entrada) return actualizarOrden(orderId, PENDIENTE);
+  if (!entrada) return actualizarOrden(orderId, PROGRESO_PENDIENTE);
   pintarCliente(entrada.fila, orderId);
   entrada.fila.hidden = !coincide(orderId, entrada);
+  if (orderId === seleccionada) alSeleccionar(orderId);
+}
+
+export function existeOrden(orderId) {
+  return ordenes.has(orderId);
+}
+
+export function progresoDe(orderId) {
+  return ordenes.get(orderId)?.progreso ?? null;
+}
+
+/** Marca la fila y avisa para pintar su recorrido. Devuelve false si la orden aún no está en la tabla. */
+export function seleccionarOrden(orderId) {
+  if (!ordenes.has(orderId)) return false;
+  ordenes.get(seleccionada)?.fila.removeAttribute('aria-selected');
+  seleccionada = orderId;
+  ordenes.get(orderId).fila.setAttribute('aria-selected', 'true');
+  alSeleccionar(orderId);
+  return true;
 }
 
 export function filtrar({ resultado, texto }) {
@@ -131,11 +170,11 @@ function pintarMostrando() {
   const total = ordenes.size;
   let visibles = 0;
   for (const entrada of ordenes.values()) if (!entrada.fila.hidden) visibles++;
-  $('sin-ordenes').hidden = visibles > 0;
-  $('sin-ordenes').textContent = total === 0
-    ? 'Todavía no hay órdenes. Envía una desde el formulario o con un ejemplo.'
+  porId('sin-ordenes').hidden = visibles > 0;
+  porId('sin-ordenes').textContent = total === 0
+    ? 'Todavía no hay órdenes. Haz una compra en la tienda o usa un escenario de la exposición.'
     : 'Ninguna orden coincide con el filtro o la búsqueda.';
-  $('mostrando').textContent = visibles === total ? ''
+  porId('mostrando').textContent = visibles === total ? ''
     : `Mostrando ${formatoNumero.format(visibles)} de ${formatoNumero.format(total)}`;
 }
 
@@ -152,7 +191,7 @@ export function refrescar() {
 }
 
 export function mostrarConexion(conectado) {
-  const conexion = $('conexion');
+  const conexion = porId('conexion');
   conexion.classList.toggle('desconectado', !conectado);
   conexion.textContent = conectado
     ? 'Conectado al dashboard'
@@ -162,5 +201,5 @@ export function mostrarConexion(conectado) {
 
 /** Cada mensaje del WebSocket deja la hora a la vista: es la prueba de que el panel está al día. */
 export function anotarActualizacion() {
-  $('conexion').textContent = 'Conectado. Última actualización: ' + formatoHora.format(new Date());
+  porId('conexion').textContent = 'Conectado. Última actualización: ' + formatoHora.format(new Date());
 }
