@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,6 +65,6 @@ class PublicadorBandejaSalidaTest {
 
         // Assert
         verify(bandeja, never()).delete(any());
-        verify(kafka, never()).send("new_orders", null, null);
+        verifyNoInteractions(segundo); // el segundo mensaje ni se leyó: espera al siguiente ciclo
     }
 }
