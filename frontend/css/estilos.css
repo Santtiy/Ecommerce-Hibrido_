@@ -1,0 +1,89 @@
+/* Estilos del dashboard de ordenes: colores, tarjetas, formulario, tablas y etiquetas de estado. */
+
+:root {
+  --fondo: #f3f4f6; --tarjeta: #ffffff; --texto: #111827; --suave: #4b5563; --borde: #d1d5db;
+  --acento: #1d4ed8; --acento-texto: #ffffff;
+  --ok-fondo: #dcfce7; --ok-texto: #14532d;
+  --fallo-fondo: #fee2e2; --fallo-texto: #7f1d1d;
+  --pend-fondo: #e5e7eb; --pend-texto: #374151;
+  --destacado: #fef3c7;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 24px 16px 48px; background: var(--fondo); color: var(--texto);
+  font: 18px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 1100px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font-size: 30px; margin: 0; }
+h2 { font-size: 22px; margin: 0 0 14px; }
+.conexion { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 600; }
+.punto { width: 16px; height: 16px; border-radius: 50%; background: #dc2626; }
+.conexion.conectado .punto { background: #16a34a; }
+
+.tarjeta { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 10px; padding: 20px; }
+.tabla-envoltura { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--borde); }
+th { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--suave); }
+tbody tr:last-child td { border-bottom: none; }
+
+label { font-weight: 600; display: block; margin-bottom: 6px; }
+input {
+  font: inherit; color: inherit; background: #fff; width: 100%;
+  padding: 8px 10px; border: 1px solid #9ca3af; border-radius: 6px;
+}
+input:focus { outline: 3px solid #93c5fd; outline-offset: 1px; }
+#cliente { max-width: 420px; }
+#items td { padding: 6px; border: none; }
+#items input[type=number] { text-align: right; }
+.col-num { width: 160px; }
+
+button {
+  font: inherit; font-weight: 600; cursor: pointer; border-radius: 6px;
+  padding: 8px 16px; border: 1px solid #9ca3af; background: #fff; color: var(--texto);
+}
+button:hover { background: #f3f4f6; }
+button.primario { background: var(--acento); color: var(--acento-texto); border-color: var(--acento); font-size: 20px; padding: 10px 24px; }
+button.primario:hover { background: #1e40af; }
+button.primario:disabled { opacity: .6; cursor: wait; }
+button.quitar { padding: 6px 12px; color: var(--fallo-texto); }
+.fila-botones { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+
+.totales { margin-top: 16px; display: grid; grid-template-columns: auto auto; justify-content: end; gap: 4px 24px; font-size: 20px; }
+.totales dt { color: var(--suave); }
+.totales dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.totales .total { font-weight: 700; }
+.nota { color: var(--suave); font-size: 15px; margin: 6px 0 0; text-align: right; }
+
+.ejemplos { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.ejemplos button { text-align: left; display: grid; gap: 2px; padding: 10px 14px; }
+.ejemplos small { font-weight: 400; color: var(--suave); font-size: 15px; }
+.ejemplos button.invalida { border-color: #f87171; }
+
+#respuesta { border-left: 6px solid var(--borde); }
+#respuesta.ok { border-left-color: #16a34a; }
+#respuesta.fallo { border-left-color: #dc2626; }
+#respuesta .codigo { font-size: 24px; font-weight: 700; }
+#respuesta pre {
+  margin: 10px 0 0; padding: 10px; background: var(--fondo); border-radius: 6px;
+  font: 15px/1.4 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-all;
+}
+.vacio { padding: 24px 12px; text-align: center; color: var(--suave); }
+
+.cabecera-tabla { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.cabecera-tabla h2 { margin: 0; }
+.contador { font-size: 20px; }
+.contador strong { font-size: 26px; }
+td.orden { font-family: ui-monospace, Consolas, monospace; cursor: help; }
+td.hora { font-variant-numeric: tabular-nums; color: var(--suave); }
+.estado { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 16px; font-weight: 600; }
+.estado.ok { background: var(--ok-fondo); color: var(--ok-texto); }
+.estado.fallo { background: var(--fallo-fondo); color: var(--fallo-texto); }
+.estado.pendiente { background: var(--pend-fondo); color: var(--pend-texto); }
+
+#ordenes tbody td { transition: background-color 1.8s ease-out; }
+#ordenes tbody tr.destacada td { background-color: var(--destacado); transition: none; }
+
+.separada { margin-top: 16px; }
+#respuesta-contenido p { margin: 6px 0; }

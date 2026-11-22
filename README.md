@@ -52,7 +52,7 @@ completa con las correcciones de la auditoría: ver [`docs/correcciones.md`](doc
 | Carpeta | Qué contiene |
 |---|---|
 | `backend/` | Proyecto Maven (`pom.xml` padre), los 9 módulos Java (`common`, `common-mensajeria` y los 7 servicios) y el `Dockerfile` |
-| `frontend/` | Dashboard web (`index.html`). Lo sirve `dashboard-aggregator` en `http://localhost:8081`: Maven lo empaqueta como `classpath:/static` |
+| `frontend/` | Dashboard web sin build step: `index.html` (estructura), `css/estilos.css` y módulos ES en `js/` (`config`, `api`, `canal`, `tablero`, `formulario`, `respuesta`, `formato`, `app`). Lo sirve `dashboard-aggregator` en `http://localhost:8081`: Maven lo empaqueta como `classpath:/static` |
 | `ops/` | Scripts de arranque/parada (local y AWS) |
 | `docs/` | Documentación |
 
