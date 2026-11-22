@@ -55,7 +55,7 @@ las correcciones respecto a la versión anterior, en [`docs/correcciones.md`](do
 | Carpeta | Qué contiene |
 |---|---|
 | `backend/` | Proyecto Maven (`pom.xml` padre), los 9 módulos Java (`common`, `common-mensajeria` y los 7 servicios) y el `Dockerfile` |
-| `frontend/` | Dashboard web sin build step: `index.html` (estructura), `css/estilos.css` y módulos ES en `js/` (`config`, `api`, `canal`, `tablero`, `formulario`, `respuesta`, `formato`, `app`). Lo sirve `dashboard-aggregator` en `http://localhost:8081`: Maven lo empaqueta como `classpath:/static` |
+| `frontend/` | Dashboard web sin build step: `index.html` (estructura), `css/estilos.css` (tema claro y oscuro, versión móvil) y módulos ES en `js/`: `config`, `api`, `canal`, `app`; cálculo puro en `calculo` (total y reglas RN-11/12/14) y `estados`; vistas `formulario` (validación en línea), `respuesta`, `tablero` (filtro y búsqueda), `resumen` (cuántas órdenes hay de cada resultado); `registro` (cliente y total de las órdenes enviadas desde el navegador) y `formato`. Solo usa `POST /order` y `/ws/ordenes`. Lo sirve `dashboard-aggregator` en `http://localhost:8081`: Maven lo empaqueta como `classpath:/static` |
 | `ops/` | Scripts de arranque/parada (local y AWS) |
 | `docs/` | Documentación |
 
