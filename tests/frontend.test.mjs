@@ -82,6 +82,19 @@ test('el resumen conserva promoción, envío gratis y avisos de pago y stock', (
   assert.equal(crearResumenPedido([]).querySelector('.totales'), null);
 });
 
+test('el pedido de la captura no activa el descuento por superar el umbral solo con IVA', () => {
+  const items = [
+    { nombre: 'Memoria USB 4 GB', cantidad: 2, precioUnitario: 20000 },
+    { nombre: 'Mouse inalámbrico', cantidad: 1, precioUnitario: 59900 },
+  ];
+  assert.deepEqual(estimar(items), { subtotal: 99900, descuento: 0, iva: 18981, total: 118881 });
+  const resumen = crearResumenPedido(items);
+  assert.match(resumen.textContent, /pendiente/);
+  assert.equal(resumen.querySelector('.descuento'), null);
+  assert.equal(resumen.querySelector('progress').value, 99900);
+  assert.equal(resumen.querySelector('progress').max, 100000);
+});
+
 test('el carrito conserva cantidades, límites y el contrato de los ítems', () => {
   carrito.vaciarCarrito();
   carrito.ponerCantidad('USB-001', 5);

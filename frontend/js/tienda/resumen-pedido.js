@@ -34,13 +34,11 @@ function beneficio({ subtotal, descuento }) {
   const caja = crear('div', 'beneficio-pedido' + (activo ? ' activo' : ''));
   const titulo = crear('p', 'beneficio-titulo');
   titulo.append(icono(activo ? 'hecho' : 'regalo'), crear('strong', '',
-    activo ? `¡Tu ${REGLAS.porcentajeDescuento} % ya está activo!` : `Tu compra puede ahorrar ${REGLAS.porcentajeDescuento} %`));
+    activo ? `¡Tu ${REGLAS.porcentajeDescuento} % ya está activo!` : `Descuento del ${REGLAS.porcentajeDescuento} % pendiente`));
 
-  let texto = `Suma más de ${formatoPesos.format(REGLAS.umbralDescuento - subtotal)} al subtotal y activa tu descuento.`;
+  let texto = `Supera ${formatoPesos.format(REGLAS.umbralDescuento)} de subtotal, antes de IVA, para activar el ${REGLAS.porcentajeDescuento} % de descuento.`;
   if (activo) {
     texto = `Ahorras ${formatoPesos.format(descuento)} en productos. El envío también es gratis.`;
-  } else if (subtotal === REGLAS.umbralDescuento) {
-    texto = `Supera ${formatoPesos.format(REGLAS.umbralDescuento)} de subtotal para activar el descuento.`;
   }
   caja.append(titulo, crear('p', 'beneficio-texto', texto));
   if (!activo) {
@@ -48,7 +46,7 @@ function beneficio({ subtotal, descuento }) {
     progreso.max = REGLAS.umbralDescuento;
     progreso.value = subtotal;
     progreso.setAttribute('aria-label', 'Subtotal para superar el umbral del descuento');
-    caja.append(progreso, crear('small', '', `${formatoPesos.format(subtotal)} de ${formatoPesos.format(REGLAS.umbralDescuento)} · antes de IVA`));
+    caja.append(progreso, crear('small', '', `Subtotal actual: ${formatoPesos.format(subtotal)} · antes de IVA`));
   }
   return caja;
 }
