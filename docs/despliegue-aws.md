@@ -440,8 +440,8 @@ curl -s -X POST http://localhost:8080/order -H 'Content-Type: application/json' 
   -d '{"cliente":"Cliente Demo","items":[{"sku":"LIB-001","nombre":"Libro","cantidad":0,"precioUnitario":150000}]}'
 ```
 
-Dashboard: `http://<IP_PUBLICA_EC2>:8081` en el navegador; la orden debe pasar a
-`PAYMENT_*`, `STOCK_*`, `EMAIL_*`. Desde Windows también sirve `ops\enviar-ordenes.ps1` cambiando
+Tienda: `http://<IP_PUBLICA_EC2>:8081`; panel de administración: `http://<IP_PUBLICA_EC2>:8081/admin.html`.
+En el panel, la orden debe pasar a `PAYMENT_*`, `STOCK_*`, `EMAIL_*`. Desde Windows también sirve `ops\enviar-ordenes.ps1` cambiando
 la URL base a la IP pública.
 
 ### Flujo de eventos

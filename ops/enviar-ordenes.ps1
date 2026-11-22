@@ -94,7 +94,7 @@ for ($i = 0; $i -lt $casos.Count; $i++) {
 
 Write-Host ""
 if ($fallos -eq 0) {
-    Write-Host "Todo lo comprobable desde HTTP coincide. Revisa ahora el dashboard: http://localhost:8081" -ForegroundColor Green
+    Write-Host "Todo lo comprobable desde HTTP coincide. Revisa ahora el panel de administracion: http://localhost:8081/admin.html" -ForegroundColor Green
     exit 0
 } else {
     Write-Host "$fallos comprobacion(es) no coincidieron. Revisa las ventanas de los servicios." -ForegroundColor Red

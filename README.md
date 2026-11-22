@@ -55,12 +55,13 @@ las correcciones respecto a la versión anterior, en [`docs/correcciones.md`](do
 | Carpeta | Qué contiene |
 |---|---|
 | `backend/` | Proyecto Maven (`pom.xml` padre), los 9 módulos Java (`common`, `common-mensajeria` y los 7 servicios) y el `Dockerfile` |
-| `frontend/` | Dashboard web sin build step: `index.html` (estructura), `css/estilos.css` (tema claro y oscuro, versión móvil) y módulos ES en `js/`: `config`, `api`, `canal`, `app`; cálculo puro en `calculo` (total y reglas RN-11/12/14) y `estados`; vistas `formulario` (validación en línea), `respuesta`, `tablero` (filtro y búsqueda), `resumen` (cuántas órdenes hay de cada resultado); `registro` (cliente y total de las órdenes enviadas desde el navegador) y `formato`. Solo usa `POST /order` y `/ws/ordenes`. Lo sirve `dashboard-aggregator` en `http://localhost:8081`: Maven lo empaqueta como `classpath:/static` |
+| `frontend/` | Dos páginas web sin build step, que solo usan `POST /order` y `/ws/ordenes`. **Tienda** (`index.html`, `css/tienda.css`, `js/tienda/`): la app con catálogo (búsqueda, categorías, orden, favoritos y página de cada producto en `#producto/SKU`), carrito, confirmación y seguimiento del pedido en vivo, en pasos, más los escenarios de la exposición. Las fotos de producto (`img/productos/`) son reales y con licencia libre de Wikimedia Commons; autor y licencia de cada una en `img/productos/CREDITOS.md` y al pie de la tienda. **Panel de administración** (`admin.html`, `css/admin.css`, `js/admin/`): órdenes en vivo con filtros, recorrido de una orden por la arquitectura y última petición a order-api. Comparten `css/base.css` y los módulos de `js/` (`config`, `api`, `canal`, `calculo`, `estados`, `formato`, `iconos`, `registro` y `peticiones`); `registro` y `peticiones` pasan las órdenes y la última petición de la tienda al panel por `localStorage`. Lo sirve `dashboard-aggregator` en `http://localhost:8081`: Maven lo empaqueta como `classpath:/static` |
 | `ops/` | Scripts de arranque/parada (local y AWS) |
 | `docs/` | Documentación |
 
 `docker-compose.yml` y `.env` siguen en la raíz; el contexto de build de Docker es la raíz porque necesita `backend/` y `frontend/`.
 Tras editar el front, vuelve a empaquetar `dashboard-aggregator` (o reinicia el servicio desde IntelliJ) para ver el cambio.
+La organización de los módulos, los límites de tamaño y las pruebas del frontend están en [`docs/frontend.md`](docs/frontend.md).
 
 ## Estructura de cada servicio
 
@@ -208,7 +209,8 @@ powershell -ExecutionPolicy Bypass -File ops\detener.ps1 -ConInfra
 | Qué | URL |
 |---|---|
 | API | `POST http://localhost:8080/order` |
-| Dashboard | `http://localhost:8081` |
+| Tienda (la app: catálogo, carrito, compra y seguimiento) | `http://localhost:8081` |
+| Panel de administración (órdenes en vivo, recorrido y última petición) | `http://localhost:8081/admin.html` |
 | Consola de RabbitMQ | `http://localhost:15672` (usuario `ecommerce`) |
 
 Ejemplo:
