@@ -21,13 +21,19 @@ El sistema usa los dos a propósito, cada uno para lo que hace mejor. La regla c
 
 ### Kafka: `new_orders` y los tres `*_events`
 
-**1. Retención y relectura de `new_orders`.** `analytics-service` (total de ventas) y `dashboard-aggregator`
+**1. Retención y relectura.** `analytics-service` (total de ventas) y `dashboard-aggregator`
 (estado `{payment, stock, email}` de cada orden) guardan su estado **en memoria**. Si se reinician, lo pierden; pero
-como Kafka conserva los eventos (retención por defecto: 7 días), al arrancar vuelven al principio del topic y
-reconstruyen el estado. Lo hace [`ConsumidorQueReleeTodo`](../backend/common-mensajeria/src/main/java/co/edu/proyecto/mensajeria/kafka/ConsumidorQueReleeTodo.java)
+como Kafka conserva los eventos (retención por defecto: 7 días), al arrancar vuelven al principio de sus topics y
+reconstruyen el estado: `analytics-service` relee `new_orders` y `dashboard-aggregator` relee `billing_events`,
+`inventory_events` y `notification_events`. Lo hace [`ConsumidorQueReleeTodo`](../backend/common-mensajeria/src/main/java/co/edu/proyecto/mensajeria/kafka/ConsumidorQueReleeTodo.java)
 con `seekToBeginning` cada vez que reciben sus particiones. Es seguro porque los dos son idempotentes
 (`AgregadorVentas` y `TableroOrdenes` ignoran una orden o un resultado repetido). Con RabbitMQ esto sería imposible:
 los mensajes ya confirmados no existen.
+
+> **Advertencia:** en `docker-compose.yml` Kafka **no tiene volumen**: el log vive dentro de su contenedor. La
+> relectura funciona cuando se reinicia un servicio (o el propio Kafka con `stop`/`start`), pero si se **recrea**
+> el contenedor de Kafka (`docker compose down`, `up --force-recreate` o un cambio en su configuración), los topics
+> y los offsets se pierden y no queda historial que releer. Ver [despliegue-aws.md §5](despliegue-aws.md#5-kafka-rabbitmq-y-postgresql).
 
 **2. Varios grupos de consumidores sobre el mismo topic.** Un mismo evento lo leen consumidores independientes, sin
 que el productor sepa que existen ([`GruposConsumidores.java`](../backend/common/src/main/java/co/edu/proyecto/common/nombres/GruposConsumidores.java)):

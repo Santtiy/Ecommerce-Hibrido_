@@ -2,9 +2,10 @@
 
 El proyecto tiene **un único archivo Compose, `docker-compose.yml`**, con la configuración
 optimizada para AWS EC2 t3.small. Este documento la describe junto con los scripts de `ops/aws/`.
-La configuración anterior de la **etapa 7** (VM de 8 GB / 4 vCPU, límites de 4368M y puertos de
-infraestructura publicados) ya no está en este repositorio; se conserva en el historial del repositorio de la
-versión anterior (commit `a0b8dbb`) y es la referencia de las comparaciones de este documento.
+En este documento, **configuración anterior** es la que tenía el proyecto antes de optimizarlo para AWS
+(la "etapa 7" de la versión previa): una VM de 8 GB / 4 vCPU, límites que sumaban 4368M y los puertos de
+infraestructura publicados. Ya no está en este repositorio; se usa solo como referencia de las comparaciones,
+con las cifras que se midieron con `docker stats` en aquella VM.
 
 | Archivo | Uso |
 |---|---|
@@ -16,9 +17,10 @@ versión anterior (commit `a0b8dbb`) y es la referencia de las comparaciones de 
 | `ops/aws/exportar-imagenes.ps1` | Exportación de las 7 imágenes en Windows (`docker save` + gzip). |
 | `.gitattributes`, `ops/aws/.gitattributes` | Fuerzan LF en `.sh`/`.conf` aunque Git use `core.autocrlf=true`. |
 
-> **Estado:** configuración desplegada y verificada en EC2: los diez contenedores arrancaron, el
-> dashboard respondió y una orden de prueba se procesó de punta a punta. Los consumos de memoria
-> de §12 siguen siendo estimaciones hasta registrar una medición con `docker stats` en la instancia.
+> **Estado:** el despliegue de esta versión en EC2 está **pendiente**. Este documento describe la
+> configuración y los pasos; los valores medidos en la instancia (`docker stats`, `free -h`, `vmstat`)
+> se registrarán al desplegar. Hasta entonces, las únicas cifras medidas son las locales (Docker Desktop
+> con los mismos límites) de §3 y §12.
 
 ---
 
@@ -64,7 +66,7 @@ defecto; ver §7.1).
 | | Mínimo | Recomendado |
 |---|---|---|
 | Instancia | **t3.small** (2 GiB, 2 vCPU) | t3.medium (4 GiB) si las mediciones superan ~1,5 GiB |
-| t3.micro (1 GiB) | **No viable**: solo los contenedores necesitan ~1,2-1,35 GiB | — |
+| t3.micro (1 GiB) | **No viable**: solo los contenedores usan ~1,3-1,4 GiB (medido en local) | — |
 | Swap | 2 GiB (ya configurado) | 2 GiB, `vm.swappiness` bajo (10-20) |
 | Disco EBS | 16 GiB gp3 | 20 GiB gp3 (imágenes ~1,5 GiB descomprimidas + logs + datos) |
 | SO / Docker | Ubuntu 24.04, Docker Engine ≥ 25 (`start_interval`), Compose V2 ≥ 2.20 | Docker 29.1.3 / Compose 2.40.3 (los instalados) |
@@ -72,12 +74,14 @@ defecto; ver §7.1).
 
 Memoria disponible real en t3.small: `MemTotal` ≈ 1,9 GiB; Ubuntu + `dockerd` + `containerd` +
 `sshd` consumen ~200-300 MiB. Quedan **~1,6 GiB para contenedores** más el swap como colchón.
+En local, con los mismos límites, los 10 contenedores midieron **entre 1311 y 1442 MiB** (§12): en la
+t3.small quedarían unos **~160-340 MiB** de margen, menos de lo que daba la estimación inicial.
 
 ---
 
-## 3. Límites de la etapa 7 frente a los actuales (AWS)
+## 3. Límites de la configuración anterior frente a los actuales (AWS)
 
-| Servicio | Etapa 7 RAM / CPU | Propuesta inicial | **AWS final** | Heap (etapa 7 → AWS) | Medido en reposo (etapa 7) |
+| Servicio | Anterior RAM / CPU | Propuesta inicial | **AWS final** | Heap (anterior → AWS) | Medido en reposo (anterior) |
 |---|---:|---:|---:|---|---:|
 | kafka | 1200M / 1.0 | 420M / 1.0 | **448M / 1.0** | 768m/Xms512m → **256m/Xms128m** | 302,5 MiB |
 | order-api | 384M / 0.5 | 230M / 0.5 | **256M / 0.5** | 224m → **128m** (metaspace 128m) | 214,7 MiB |
@@ -89,7 +93,7 @@ Memoria disponible real en t3.small: `MemTotal` ≈ 1,9 GiB; Ubuntu + `dockerd` 
 | notification-worker | 288M / 0.25 | 140M / 0.25 | **160M / 0.25** | 160m → **80m** | 130,5 MiB |
 | analytics-service | 320M / 0.5 | 140M / 0.25 | **160M / 0.25** | 192m → **80m** | 114,4 MiB |
 | postgres-db | 384M / 0.5 | 110M / 0.3 | **128M / 0.3** | shared_buffers 128MB → **32MB** | 38,0 MiB |
-| **Total** | **4368M / 4.5** | **~1800M / 3.85** | **2048M / 3.85** | | **1453,6 MiB** (`docker stats` de la etapa 7) |
+| **Total** | **4368M / 4.5** | **~1800M / 3.85** | **2048M / 3.85** | | **1453,6 MiB** (`docker stats` de la configuración anterior) |
 
 ### Por qué se ajustaron algunos valores de la propuesta inicial
 
@@ -119,8 +123,9 @@ nativos`. Con Spring Boot la parte fuera del heap es de **~65-80 MB** en los wor
 | RAM de la t3.small (`MemTotal` real) | ~1900 |
 | Ubuntu + `dockerd` + `containerd` + `sshd` + caché mínima | ~250-300 |
 | **Disponible para contenedores** | **~1600-1650** |
-| Consumo esperado de los 10 contenedores en reposo (§12, estimado) | ~1150-1350 |
-| **Margen en RAM** | **~250-500** |
+| Consumo medido en local de los 10 contenedores (mismos límites, 5 órdenes procesadas; §12) | 1311-1442 |
+| **Margen en RAM** | **~160-340** |
+| *(Estimación inicial, no medida, que daba ~1150-1350 y un margen de ~250-500)* | — |
 | Suma de límites (techos por contenedor) | 2048 |
 
 * Lo que tiene que caber en la RAM es el **consumo real**, no la suma de límites. Cada límite es
@@ -137,6 +142,10 @@ nativos`. Con Spring Boot la parte fuera del heap es de **~65-80 MB** en los wor
   - total de `docker stats` ≤ ~1450 MiB;
   - `MemAvailable` ≥ ~250 MiB;
   - `vmstat 5 5` con `si`/`so` ≈ 0 (sin intercambio sostenido) y swap en uso estable < ~150 MiB.
+
+  La medición local más alta (1442 MiB) queda prácticamente en el criterio de ~1450 MiB: si en EC2 se
+  repite un valor así, la instancia está al límite y conviene volver a medir tras `down`/`up` (en local
+  la siguiente medición dio 1311 MiB) antes de decidir.
 
   Si no se cumple, la instancia está justa: subir solo los límites que lo necesiten **no
   arregla la falta de RAM**; la solución es t3.medium (4 GiB) con los mismos archivos.
@@ -182,11 +191,11 @@ Kafka (`KAFKA_JVM_PERFORMANCE_OPTS` sin tocar). Un único broker con 4 topics de
 * Listeners **sin cambios** (`INTERNAL://kafka:9092`, `EXTERNAL://localhost:29092`, `CONTROLLER :9093`).
   EXTERNAL sigue definido pero sin publicar: inalcanzable desde fuera de Docker. No se eliminó
   para no tocar la configuración de mensajería; quitarlo más adelante sería opcional.
-* Healthcheck: **la misma comprobación** que en la etapa 7 (`kafka-topics.sh --list`). Problema
+* Healthcheck: **la misma comprobación** que en la configuración anterior (`kafka-topics.sh --list`). Problema
   detectado: esa herramienta es una JVM que corre dentro del cgroup de `kafka` y heredaba
   `KAFKA_HEAP_OPTS` del broker. En AWS se ejecuta con `-Xmx48m`, SerialGC y C1, y cada 30 s en
   lugar de cada 10 s (cada 10 s durante el arranque, con `start_interval`).
-* Sin volumen (igual que en la etapa 7): topics y offsets viven en el contenedor. Sobreviven a
+* Sin volumen (igual que en la configuración anterior): topics y offsets viven en el contenedor. Sobreviven a
   `stop`/`start` y a reinicios de EC2, pero **no a `docker compose down`**.
 
 ### RabbitMQ
@@ -317,7 +326,7 @@ cifrado por el puerto 22, que ya está permitido para tu IP. Se cierra con `Ctrl
   Las imágenes ya cargadas en EC2 conservan el valor antiguo dentro del jar hasta que se
   reconstruyan, pero no lo usan. La contraseña antigua sigue en el historial de Git: **no debe
   usarse en el `.env` de EC2**.
-* Los microservicios corren con usuario sin privilegios (`ecommerce`), como en la etapa 7.
+* Los microservicios corren con usuario sin privilegios (`ecommerce`), como en la configuración anterior.
 
 ---
 
@@ -394,7 +403,7 @@ cd ~/ecommerce-hibrido && bash ops/aws/arrancar-aws.sh      # requiere .env (§7
 | 4 | billing/inventory/notification-worker | log `Started` | **declaran sus colas** y enlaces a `order_tasks`; crean sus topics |
 | 5 | order-processor | log `Started` | **siempre al final**: `order_tasks` es fanout y **descarta** lo publicado si aún no hay colas enlazadas (`order-processor` solo declara el exchange) |
 
-Verificado contra el código y los `depends_on` (idénticos a la etapa 7). El script:
+Verificado contra el código y los `depends_on` (idénticos a los de la configuración anterior). El script:
 comprueba Docker, compose válido, CRLF, la conf de RabbitMQ y que **las 10 imágenes existen**
 (falla con instrucciones si no); lanza cada tanda con `up -d --no-build`; espera por estado real
 (healthcheck o la línea `Started ... in ... seconds` **desde el último arranque**), no por esperas
@@ -405,8 +414,8 @@ que 15672 está publicado **solo** en `127.0.0.1`; al final evalúa la RAM dispo
 uso y avisa si la instancia está justa (§3). Nunca borra nada.
 Tiempos ajustables: `TIMEOUT_INFRA=240 TIMEOUT_APP=300 bash ops/aws/arrancar-aws.sh`.
 
-### Healthchecks (etapa 7 → AWS)
-| Servicio | Etapa 7 | AWS | Detección de un fallo real tras el arranque |
+### Healthchecks (configuración anterior → AWS)
+| Servicio | Anterior | AWS | Detección de un fallo real tras el arranque |
 |---|---|---|---|
 | postgres-db | 5s, 10 reintentos | 5s, 20 reintentos, start_period 30s | ~100 s |
 | kafka | 10s, 12 reint., sp 15s | 30s (10s al arrancar), 5 reint., sp 90s | ~150 s |
@@ -460,8 +469,8 @@ sudo dmesg -T | grep -i -E 'oom|killed process' | tail
 docker logs order-api 2>&1 | grep -i -E 'OutOfMemoryError|Metaspace|Direct buffer'
 ```
 
-### Estimación de consumo en reposo (no medida)
-| Servicio | Medido etapa 7 | Estimado AWS |
+### Estimación inicial de consumo en reposo (no medida)
+| Servicio | Medido (configuración anterior) | Estimado AWS |
 |---|---:|---:|
 | 5 × JVM sin web (workers, processor, analytics) | 625 MiB | 480-550 MiB |
 | order-api | 215 MiB | 165-195 MiB |
@@ -471,9 +480,30 @@ docker logs order-api 2>&1 | grep -i -E 'OutOfMemoryError|Metaspace|Direct buffe
 | postgres-db | 38 MiB | 35-45 MiB |
 | **Total** | **1454 MiB** | **~1150-1350 MiB** (centro ~1250) |
 
-El objetivo de ~1210 MiB es alcanzable pero **no está garantizado**. Kafka (G1 crece con el
-tiempo) y RabbitMQ (consola de gestión) son los valores más inciertos. Se debe medir a los
-~10 minutos de arrancar, tras enviar algunas órdenes, y otra vez pasada una hora.
+### Mediciones locales (Docker Desktop, mismos límites que en AWS)
+
+La estimación se quedó **por debajo** de lo medido. Cada cierre de la reorganización midió el total con
+`ops\verificar-flujo.ps1 -Memoria`, con el sistema recién arrancado y 5 órdenes procesadas
+(registro completo en [cumplimiento-enunciado.md](cumplimiento-enunciado.md#registro-por-fase)):
+
+| Medición | Total | order-api (límite 256M) | kafka (límite 448M) |
+|---|---:|---:|---:|
+| Línea base | 1417 MiB | 210 MiB | 372 MiB |
+| Configuraciones | 1403 MiB | 209 MiB | 357 MiB |
+| Workers | 1403 MiB | 212 MiB | 346 MiB |
+| Tipos | 1319 MiB | 207 MiB | 301 MiB |
+| Paquetes | 1385 MiB | 208 MiB | 359 MiB |
+| Compose y scripts | 1391 MiB | 215 MiB | 371 MiB |
+| Pruebas (1.ª medición / tras `down`/`up`) | 1442 / 1311 MiB | 229 / 207 MiB | 358 / 299 MiB |
+| Frontend | 1363 MiB | 206 MiB | 351 MiB |
+| Documentación | 1381 MiB | 205 MiB | 365 MiB |
+| **Rango** | **1311-1442 MiB** | **205-229 MiB** | **299-372 MiB** |
+
+Las imágenes y los límites fueron los mismos en todas: la variación (~130 MiB) es sobre todo de Kafka
+(G1 crece con el tiempo) y de order-api, los dos por encima de su rango estimado. Con ~1600-1650 MiB
+disponibles en la t3.small, el margen esperado es de **~160-340 MiB**. En EC2 se debe medir a los
+~10 minutos de arrancar, tras enviar algunas órdenes, y otra vez pasada una hora; el resultado se
+registrará en este documento al desplegar.
 
 ---
 
@@ -488,7 +518,7 @@ tiempo) y RabbitMQ (consola de gestión) son los valores más inciertos. Se debe
   `CPUSurplusCreditBalance` en CloudWatch.
 * El arranque de 7 JVM es el mayor consumo de créditos: por eso las tandas, C1 en lugar de C2 y
   healthchecks JVM/Erlang menos frecuentes. En reposo, Kafka es el mayor consumidor de CPU
-  (en la medición de la etapa 7 llegó a 41 % en una instantánea, probablemente durante su healthcheck).
+  (en la medición de la configuración anterior llegó a 41 % en una instantánea, probablemente durante su healthcheck).
 * **Reinicio de EC2:** con `restart: unless-stopped`, Docker relanza a la vez todos los
   contenedores que estaban en marcha (sin tandas ni `depends_on`). Topics y colas ya existen,
   así que no hay pérdida de eventos por orden, pero sí un pico de CPU de varios minutos. Para un
@@ -513,9 +543,10 @@ docker compose restart order-api     # reiniciar un servicio concreto
 
 ## 15. Reversión si la optimización falla
 
-La optimización solo afecta a `docker-compose.yml`, `ops/aws/`, `ops/rabbitmq/` y esta guía; el código Java, los
-`application.yml`, `pom.xml` y el `Dockerfile` no se tocaron. Punto de restauración de la
-configuración de la etapa 7: commit `a0b8dbb` del repositorio anterior.
+Los límites de memoria y CPU, `JAVA_OPTS` y los healthchecks están en `docker-compose.yml` (más
+`ops/rabbitmq/20-memoria.conf`), y el arranque en `ops/aws/`. La reorganización del proyecto también cambió
+código Java, `application.yml`, `pom.xml` y el `Dockerfile`, así que la reversión se hace siempre con el
+historial de **este** repositorio. Primero se intenta el ajuste puntual de la tabla:
 
 | Síntoma | Ajuste (solo en `docker-compose.yml`) |
 |---|---|
@@ -524,29 +555,27 @@ configuración de la etapa 7: commit `a0b8dbb` del repositorio anterior.
 | `OutOfMemoryError: Java heap space` | subir `-Xmx` 16-32m **y** el límite en la misma cantidad |
 | Alarma de memoria en RabbitMQ | subir `vm_memory_high_watermark.absolute` y el límite |
 | Arranque lento / timeouts del script | `TIMEOUT_APP=420`, o subir `cpus` temporalmente |
-| No cabe en 2 GiB | t3.medium con los mismos archivos, o los límites de la etapa 7 |
+| No cabe en 2 GiB | t3.medium (4 GiB) con los mismos archivos |
 
-Recuperar la configuración de la etapa 7 (desde un clon del repositorio anterior; solo en una máquina con
-más RAM: sus límites suman 4368M; mismos volúmenes y mismo nombre de proyecto):
-```bash
-git show a0b8dbb:docker-compose.yml > /tmp/docker-compose.etapa7.yml   # sin tocar el archivo actual
-bash ops/aws/detener-aws.sh
-docker compose -p ecommerce-hibrido -f /tmp/docker-compose.etapa7.yml up -d --no-build --wait
+Si el problema lo introdujo un cambio concreto, se revierte su commit en Windows y se vuelve a desplegar:
+```powershell
+# [Windows PowerShell] desde la carpeta del proyecto
+git log --oneline -- docker-compose.yml ops/   # localizar el commit que introdujo el cambio
+git revert <commit>                            # crea un commit nuevo que lo deshace, sin reescribir el historial
 ```
-(La etapa 7 no declara `image:`, pero compose usa por defecto el mismo nombre
-`ecommerce-hibrido-<servicio>`, así que reutiliza las imágenes cargadas. `-p` fija el nombre de
-proyecto, porque el archivo fuera de la carpeta del proyecto tomaría el nombre `tmp`. Publica de
-nuevo 5433, 9092, 29092 y 5672.)
+* Si el commit revertido solo toca `docker-compose.yml` u `ops/`: copiar esos archivos por SCP (§9) y en
+  Ubuntu ejecutar `bash ops/aws/detener-aws.sh` y `bash ops/aws/arrancar-aws.sh`.
+* Si toca código Java, `application.yml`, `pom.xml` o el `Dockerfile`: reconstruir y exportar las imágenes
+  (§8), transferirlas e importarlas (§9) y arrancar por tandas (§10).
 
-Revertir los archivos en Windows: `git revert <commit>` del cambio correspondiente (en este repositorio), o
-`git show a0b8dbb:docker-compose.yml` en el repositorio anterior para ver el Compose de la etapa 7.
+Los volúmenes (`ecommerce-hibrido_postgres-data`, `analytics-datos`) no se tocan en ningún caso.
 
 ---
 
-## Anexo: diferencias con la configuración de la etapa 7
+## Anexo: diferencias con la configuración anterior
 
-Comparación entre el `docker-compose.yml` actual y el de la etapa 7 (`git show a0b8dbb:docker-compose.yml`),
-sobre el modelo resuelto por `docker compose config` (`--format json`):
+Comparación entre el `docker-compose.yml` actual y el de la configuración anterior,
+hecha sobre el modelo resuelto por `docker compose config` (`--format json`):
 
 * **Iguales:** los 10 servicios y sus `container_name`, `build` (contexto, Dockerfile, `MODULO`),
   `depends_on`, redes (`ecommerce-net`), volúmenes (`postgres-data`, `analytics-datos`),
@@ -563,5 +592,5 @@ sobre el modelo resuelto por `docker compose config` (`--format json`):
 * **RabbitMQ:** solo 15672 publicado, y únicamente en `127.0.0.1` (túnel SSH); `RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS`;
   montaje de `ops/rabbitmq/20-memoria.conf`; healthcheck 30 s; límite 224M / 0.4 CPU.
 * **PostgreSQL:** sin `ports`; `command` con 4 parámetros; healthcheck 20 reintentos; 128M / 0.3 CPU.
-* **Credenciales:** en la etapa 7 estaban escritas en el archivo; ahora `POSTGRES_PASSWORD` y
+* **Credenciales:** en la configuración anterior estaban escritas en el archivo; ahora `POSTGRES_PASSWORD` y
   `RABBITMQ_PASSWORD` llegan de `.env` y son obligatorias (§7.1).

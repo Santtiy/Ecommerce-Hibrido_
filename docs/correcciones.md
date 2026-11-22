@@ -16,7 +16,7 @@
 | C-12 | CORS y WebSocket abiertos a `*` | `APP_ORIGENES` (por defecto `http://localhost:8081`) | `ConfiguracionWeb` (order-api), `ConfiguracionWebSocket` (dashboard) |
 | C-13 | Esquema generado por Hibernate, sin `CHECK` | `schema.sql` con `CHECK` y `UNIQUE`; `ddl-auto: none` | `backend/order-api/src/main/resources/schema.sql` |
 | C-14 | `rabbitListenerContainerFactory` repetido sin aportar | Eliminado: basta el `Jackson2JsonMessageConverter` | `ConfiguracionRabbitBase` (common-mensajeria) |
-| C-15 | Fábricas de productor y consumidor de Kafka escritas a mano en 6 servicios | Todo en `application.yml`; productores envían JSON como texto | `application.yml` de cada servicio |
+| C-15 | Fábricas de productor y consumidor de Kafka escritas a mano en 6 servicios | Todo en `application.yml`; productores envían JSON como texto. La configuración compartida de los tres workers (RabbitMQ, reintentos y productor de Kafka) está en `common-mensajeria/src/main/resources/worker-comun.yml`, que cada uno importa con `spring.config.import` | `application.yml` de cada servicio y `backend/common-mensajeria/src/main/resources/worker-comun.yml` |
 | C-16 | Nombres de topics y colas escritos como texto en varios sitios | Clases de constantes | `common/.../nombres/` |
 | C-17 | `PublicadorEventosLog` y perfil `sin-kafka` sobrantes | No existen | — |
 | C-18 | Métodos sin uso (`OrdenId.de`, `leerTodo`) | No existen | — |
