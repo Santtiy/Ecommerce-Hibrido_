@@ -22,11 +22,25 @@ x-microservicio: &microservicio
 x-kafka: &kafka-env
   KAFKA_BOOTSTRAP: kafka:9092
 
+# Variables de conexion: un solo esquema (KAFKA_BOOTSTRAP, RABBITMQ_*, DB_*), el mismo que leen los application.yml.
 x-rabbit: &rabbit-env
-  SPRING_RABBITMQ_HOST: rabbitmq
-  SPRING_RABBITMQ_PORT: 5672
-  SPRING_RABBITMQ_USERNAME: ecommerce
-  SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Falta RABBITMQ_PASSWORD. Copia .env.example a .env y rellenalo}
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: 5672
+  RABBITMQ_USER: ecommerce
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Falta RABBITMQ_PASSWORD. Copia .env.example a .env y rellenalo}
+
+# JVM, limites y dependencias comunes de los 5 servicios pequenos (3 workers, order-processor y analytics-service).
+# order-api y dashboard-aggregator conservan sus valores propios.
+x-java-opts-pequeno: &java-opts-pequeno
+  JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
+
+x-limites-pequeno: &limites-pequeno
+  resources:
+    limits: { memory: 160M, cpus: "0.25" }
+
+x-depende-brokers: &depende-brokers
+  kafka: { condition: service_healthy }
+  rabbitmq: { condition: service_healthy }
 
 services:
 
@@ -110,8 +124,8 @@ services:
       - "127.0.0.1:15672:15672"
     volumes:
       - type: bind
-        source: ./ops/aws/rabbitmq/20-aws.conf
-        target: /etc/rabbitmq/conf.d/20-aws.conf
+        source: ./ops/rabbitmq/20-memoria.conf
+        target: /etc/rabbitmq/conf.d/20-memoria.conf
         read_only: true
         bind:
           create_host_path: false
@@ -134,14 +148,9 @@ services:
     build: { <<: *build, args: { MODULO: billing-worker } }
     container_name: billing-worker
     environment:
-      <<: [*kafka-env, *rabbit-env]
-      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
-    depends_on:
-      kafka: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
-    deploy:
-      resources:
-        limits: { memory: 160M, cpus: "0.25" }
+      <<: [*kafka-env, *rabbit-env, *java-opts-pequeno]
+    depends_on: *depende-brokers
+    deploy: *limites-pequeno
 
   inventory-worker:
     <<: *microservicio
@@ -149,14 +158,9 @@ services:
     build: { <<: *build, args: { MODULO: inventory-worker } }
     container_name: inventory-worker
     environment:
-      <<: [*kafka-env, *rabbit-env]
-      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
-    depends_on:
-      kafka: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
-    deploy:
-      resources:
-        limits: { memory: 160M, cpus: "0.25" }
+      <<: [*kafka-env, *rabbit-env, *java-opts-pequeno]
+    depends_on: *depende-brokers
+    deploy: *limites-pequeno
 
   notification-worker:
     <<: *microservicio
@@ -164,14 +168,9 @@ services:
     build: { <<: *build, args: { MODULO: notification-worker } }
     container_name: notification-worker
     environment:
-      <<: [*kafka-env, *rabbit-env]
-      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
-    depends_on:
-      kafka: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
-    deploy:
-      resources:
-        limits: { memory: 160M, cpus: "0.25" }
+      <<: [*kafka-env, *rabbit-env, *java-opts-pequeno]
+    depends_on: *depende-brokers
+    deploy: *limites-pequeno
 
   dashboard-aggregator:
     <<: *microservicio
@@ -238,15 +237,11 @@ services:
     build: { <<: *build, args: { MODULO: order-processor } }
     container_name: order-processor
     environment:
-      <<: [*kafka-env, *rabbit-env]
-      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
+      <<: [*kafka-env, *rabbit-env, *java-opts-pequeno]
     depends_on:
-      kafka: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
+      <<: *depende-brokers
       order-api: { condition: service_healthy }
-    deploy:
-      resources:
-        limits: { memory: 160M, cpus: "0.25" }
+    deploy: *limites-pequeno
 
   analytics-service:
     <<: *microservicio
@@ -254,17 +249,14 @@ services:
     build: { <<: *build, args: { MODULO: analytics-service } }
     container_name: analytics-service
     environment:
-      <<: *kafka-env
+      <<: [*kafka-env, *java-opts-pequeno]
       ARCHIVO_BITACORA: /app/datos/ordenes.log
-      JAVA_OPTS: "-Xmx80m -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k -XX:MaxDirectMemorySize=32m -XX:+ExitOnOutOfMemoryError -Dspring.jmx.enabled=false"
     volumes:
       - analytics-datos:/app/datos
     depends_on:
       kafka: { condition: service_healthy }
       order-api: { condition: service_healthy }
-    deploy:
-      resources:
-        limits: { memory: 160M, cpus: "0.25" }
+    deploy: *limites-pequeno
 
 volumes:
   postgres-data:

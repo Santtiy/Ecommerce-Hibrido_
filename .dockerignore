@@ -2,7 +2,7 @@
 .git/
 .idea/
 .env
-logs/
+.run/
 datos/
 evidencias/
 docs/

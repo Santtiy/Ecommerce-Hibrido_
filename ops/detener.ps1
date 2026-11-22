@@ -5,7 +5,7 @@ param(
 )
 
 $raiz        = Split-Path -Parent $PSScriptRoot
-$archivoPids = Join-Path $PSScriptRoot 'pids.txt'
+$archivoPids = Join-Path $raiz '.run\pids.txt'
 $compose     = Join-Path $raiz 'docker-compose.yml'
 $composeDev  = Join-Path $raiz 'docker-compose.dev.yml'
 

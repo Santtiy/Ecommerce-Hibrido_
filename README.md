@@ -120,6 +120,9 @@ powershell -ExecutionPolicy Bypass -File ops\enviar-ordenes.ps1
 powershell -ExecutionPolicy Bypass -File ops\detener.ps1 -ConInfra
 ```
 
+`arrancar.ps1` deja todo lo que genera en `.run/` (ignorada por Git): `pids.txt`, `logs/` y la bitácora de
+`analytics-service` en `datos/ordenes.log`.
+
 **AWS EC2:** ver [`docs/despliegue-aws.md`](docs/despliegue-aws.md).
 
 | Qué | URL |

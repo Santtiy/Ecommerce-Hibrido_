@@ -1,7 +1,7 @@
 # Prueba de punta a punta: envia tres ordenes validas y dos invalidas, y sigue cada orden valida por todo el sistema.
 #   1. order-api responde 202 (o 400 en las invalidas) con el total esperado.
 #   2. PostgreSQL: la orden queda PAGADA o CANCELADA y auditoria_ordenes tiene el resultado de los tres workers.
-#   3. analytics-service registro la orden (log).
+#   3. analytics-service registro la orden (log del contenedor o, en modo desarrollo, .run\logs).
 #   4. dashboard-aggregator: el WebSocket devuelve { payment, stock, email } con los estados esperados.
 # Con -Memoria, al final muestra el consumo de cada contenedor y la suma (para comparar con la t3.small).
 #
@@ -119,7 +119,17 @@ foreach ($caso in $aceptadas) {
 
 # --- 3. analytics-service
 Write-Host "== 3. analytics-service" -ForegroundColor Cyan
-$logAnalytics = (& docker logs analytics-service 2>&1) -join "`n"
+# En Docker se lee el log del contenedor; en modo desarrollo (ops\arrancar.ps1), el de .run\logs.
+$logDesarrollo = Join-Path (Split-Path -Parent $PSScriptRoot) '.run\logs\analytics-service.log'
+if ((docker inspect --format '{{.State.Running}}' analytics-service 2>$null) -eq 'true') {
+    $logAnalytics = (& docker logs analytics-service 2>&1) -join "`n"
+} elseif (Test-Path $logDesarrollo) {
+    $flujo = New-Object System.IO.FileStream($logDesarrollo, 'Open', 'Read', 'ReadWrite')
+    $lector = New-Object System.IO.StreamReader($flujo)
+    try { $logAnalytics = $lector.ReadToEnd() } finally { $lector.Dispose() }
+} else {
+    $logAnalytics = ''
+}
 foreach ($caso in $aceptadas) {
     Write-Resultado ($logAnalytics -match [regex]::Escape($caso.Id)) "$($caso.Nombre): orden registrada en el log"
 }

@@ -129,12 +129,12 @@ command -v docker >/dev/null 2>&1 || fallar "docker no esta instalado."
 docker info >/dev/null 2>&1      || fallar "El demonio de Docker no responde (sudo systemctl status docker) o el usuario no esta en el grupo docker."
 docker compose version >/dev/null 2>&1 || fallar "Docker Compose V2 no esta disponible."
 [ -f "$ARCHIVO_COMPOSE" ]        || fallar "No existe $ARCHIVO_COMPOSE"
-[ -f "$RAIZ/ops/aws/rabbitmq/20-aws.conf" ] || fallar "Falta ops/aws/rabbitmq/20-aws.conf (lo monta rabbitmq)."
+[ -f "$RAIZ/ops/rabbitmq/20-memoria.conf" ] || fallar "Falta ops/rabbitmq/20-memoria.conf (lo monta rabbitmq)."
 
 tiene_crlf() { [ "$(tr -cd '\r' < "$1" | wc -c)" -gt 0 ]; }
 
-if tiene_crlf "$RAIZ/ops/aws/rabbitmq/20-aws.conf"; then
-    fallar "ops/aws/rabbitmq/20-aws.conf tiene finales de linea CRLF. Corrige con: sed -i 's/\r\$//' ops/aws/rabbitmq/20-aws.conf ops/aws/*.sh"
+if tiene_crlf "$RAIZ/ops/rabbitmq/20-memoria.conf"; then
+    fallar "ops/rabbitmq/20-memoria.conf tiene finales de linea CRLF. Corrige con: sed -i 's/\r\$//' ops/rabbitmq/20-memoria.conf ops/aws/*.sh"
 fi
 
 ARCHIVO_ENV="$RAIZ/.env"

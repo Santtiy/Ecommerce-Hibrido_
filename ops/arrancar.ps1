@@ -4,12 +4,14 @@ param(
     [switch]$Reiniciar
 )
 
+# Todo lo que generan arrancar.ps1 y detener.ps1 queda en .run\ (ignorada por Git): pids.txt, logs\ y datos\.
 $raiz        = Split-Path -Parent $PSScriptRoot
-$archivoPids = Join-Path $PSScriptRoot 'pids.txt'
+$carpetaRun  = Join-Path $raiz '.run'
+$archivoPids = Join-Path $carpetaRun 'pids.txt'
 $compose     = Join-Path $raiz 'docker-compose.yml'
 $composeDev  = Join-Path $raiz 'docker-compose.dev.yml'
 $archivoEnv  = Join-Path $raiz '.env'
-$carpetaLogs = Join-Path $raiz 'logs'
+$carpetaLogs = Join-Path $carpetaRun 'logs'
 
 $contenedores   = @('postgres-db', 'kafka', 'rabbitmq')
 $puertosInfra   = @{ 'postgres-db' = 5433; 'kafka' = 29092; 'rabbitmq' = 5672 }
@@ -91,6 +93,7 @@ foreach ($v in @('POSTGRES_PASSWORD', 'RABBITMQ_PASSWORD')) {
 }
 $env:DB_PASSWORD       = $valoresEnv['POSTGRES_PASSWORD']
 $env:RABBITMQ_PASSWORD = $valoresEnv['RABBITMQ_PASSWORD']
+$env:ARCHIVO_BITACORA  = Join-Path $carpetaRun 'datos\ordenes.log'
 Write-Host "  .env leido (POSTGRES_PASSWORD y RABBITMQ_PASSWORD con valor; no se muestran)."
 
 $appEnMarcha = @($contenedoresApp | Where-Object { (docker inspect --format '{{.State.Running}}' $_ 2>$null) -eq 'true' })

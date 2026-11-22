@@ -46,9 +46,9 @@ Rutas abreviadas: `orden/` = `backend/order-api/src/main/java/co/edu/proyecto/or
 
 | # | Requisito | Estado | Dónde se cumple | Cómo comprobarlo |
 |---|---|---|---|---|
-| 20 | Compose con Kafka (coordinador del clúster), RabbitMQ (con interfaz de gestión), PostgreSQL y los microservicios | ✅ | [docker-compose.yml](../docker-compose.yml): Kafka en modo KRaft (`broker,controller`), `rabbitmq:3.13-management-alpine`, `postgres:16-alpine` | `docker compose ps`: 10 servicios `healthy`/`running` |
-| 21 | Dockerfile multietapa: Maven + OpenJDK para compilar, JRE Alpine y usuario no root para ejecutar | ✅ | [backend/Dockerfile](../backend/Dockerfile): `maven:3.9-eclipse-temurin-21` → `eclipse-temurin:21-jre-alpine`, `USER ecommerce` | `docker compose exec order-api whoami` → `ecommerce` |
-| 22 | ~10 servicios con límites de CPU y RAM por servicio | ✅ | `deploy.resources.limits` en los 10 servicios de [docker-compose.yml](../docker-compose.yml); presupuesto para la t3.small en [despliegue-aws.md](despliegue-aws.md) | `docker stats --no-stream`: columna `LIMIT` |
+| 20 | Compose con Kafka (coordinador del clúster), RabbitMQ (con interfaz de gestión), PostgreSQL y los microservicios | ✅ | [docker-compose.yml](../docker-compose.yml): Kafka en modo KRaft (`broker,controller`), `rabbitmq:3.13-management-alpine` (umbral de memoria en [20-memoria.conf](../ops/rabbitmq/20-memoria.conf)), `postgres:16-alpine`; un solo esquema de variables (`KAFKA_BOOTSTRAP`, `RABBITMQ_*`, `DB_*`) | `docker compose ps`: 10 servicios `healthy`/`running` |
+| 21 | Dockerfile multietapa: Maven + OpenJDK para compilar, JRE Alpine y usuario no root para ejecutar | ✅ | [backend/Dockerfile](../backend/Dockerfile): `maven:3.9-eclipse-temurin-21` → `eclipse-temurin:21-jre-alpine`, `USER ecommerce`; las 7 imágenes `ecommerce-hibrido-*:latest` se construyen con el anchor `x-microservicio` | `docker compose exec order-api whoami` → `ecommerce` |
+| 22 | ~10 servicios con límites de CPU y RAM por servicio | ✅ | `deploy.resources.limits` en los 10 servicios de [docker-compose.yml](../docker-compose.yml) (los 5 servicios de 160M / 0.25 CPU comparten el anchor `x-limites-pequeno`); presupuesto para la t3.small en [despliegue-aws.md](despliegue-aws.md) | `docker stats --no-stream`: columna `LIMIT` |
 
 ## E. Componentes y flujo de datos
 
@@ -83,3 +83,4 @@ La memoria se mide en local (Docker Desktop, mismos límites que en AWS) con el 
 | 2 · Workers | 2026-11-22 | 60/60 ✅ | 14/14 ✅ | 1403 MiB (order-api 212/256, kafka 346/448) | 25/28 |
 | 3 · Tipos | 2026-11-22 | 69/69 ✅ | 14/14 ✅ | 1319 MiB (order-api 207/256, kafka 301/448) | 25/28 (28 queda en ⚠️ por decisión: se conserva `orderId`) |
 | 4 · Paquetes | 2026-11-22 | 70/70 ✅ | 14/14 ✅ | 1385 MiB (order-api 208/256, kafka 359/448) | 25/28 (28 queda en ⚠️ por decisión: se conserva `orderId`) |
+| 5 · Compose y scripts | 2026-11-22 | 70/70 ✅ | 14/14 ✅ en Docker y 14/14 ✅ en modo desarrollo | 1391 MiB (order-api 215/256, kafka 371/448) | 25/28 (28 queda en ⚠️ por decisión: se conserva `orderId`) |

@@ -10,11 +10,11 @@ infraestructura publicados) ya no está en el árbol de trabajo; se conserva en 
 |---|---|
 | `docker-compose.yml` | Archivo Compose principal y único (configuración AWS): `docker compose ...` |
 | `.env.example` | Plantilla de credenciales sin valores; se copia a `.env` (ignorado por Git). Ver §7.1. |
-| `ops/aws/rabbitmq/20-aws.conf` | Umbral de memoria absoluto de RabbitMQ (montado en solo lectura). |
+| `ops/rabbitmq/20-memoria.conf` | Umbral de memoria absoluto de RabbitMQ (montado en solo lectura en todos los entornos, local y AWS). |
 | `ops/aws/arrancar-aws.sh` | Arranque por tandas en Ubuntu (`--no-build`). |
 | `ops/aws/detener-aws.sh` | Parada sin borrar volúmenes ni datos. |
 | `ops/aws/exportar-imagenes.ps1` | Exportación de las 7 imágenes en Windows (`docker save` + gzip). |
-| `ops/aws/.gitattributes` | Fuerza LF en `.sh`/`.conf` aunque Git use `core.autocrlf=true`. |
+| `.gitattributes`, `ops/aws/.gitattributes` | Fuerzan LF en `.sh`/`.conf` aunque Git use `core.autocrlf=true`. |
 
 > **Estado:** configuración desplegada y verificada en EC2: los diez contenedores arrancaron, el
 > dashboard respondió y una orden de prueba se procesó de punta a punta. Los consumos de memoria
@@ -145,7 +145,11 @@ nativos`. Con Spring Boot la parte fuera del heap es de **~65-80 MB** en los wor
 
 ## 4. Parámetros JVM (Java 21, Temurin JRE Alpine)
 
-`JAVA_OPTS` de los siete microservicios (el `Dockerfile` los aplica con `exec java $JAVA_OPTS -jar app.jar`):
+`JAVA_OPTS` de los siete microservicios (el `Dockerfile` los aplica con `exec java $JAVA_OPTS -jar app.jar`).
+Los cinco servicios con `-Xmx80m` (los 3 workers, `order-processor` y `analytics-service`) lo toman del anchor
+`x-java-opts-pequeno` de `docker-compose.yml`, junto con `x-limites-pequeno` (160M / 0.25 CPU) y
+`x-depende-brokers` (Kafka + RabbitMQ sanos); `order-api` (`-Xmx128m`) y `dashboard-aggregator` (`-Xmx96m`)
+conservan sus valores propios:
 
 ```
 -Xmx<heap> -XX:+UseSerialGC -XX:MaxMetaspaceSize=96m -XX:TieredStopAtLevel=1 -Xss512k
@@ -191,7 +195,7 @@ Kafka (`KAFKA_JVM_PERFORMANCE_OPTS` sin tocar). Un único broker con 4 topics de
   reposo consume CPU (créditos T3). **No afecta** a la concurrencia de los listeners de Spring
   (concurrency 2 y prefetch 1 siguen igual): esos son hilos Java en los workers, no planificadores
   Erlang.
-* **Umbral de memoria absoluto** (`ops/aws/rabbitmq/20-aws.conf`, montado en
+* **Umbral de memoria absoluto** (`ops/rabbitmq/20-memoria.conf`, montado en
   `/etc/rabbitmq/conf.d/`): `vm_memory_high_watermark.absolute = 168MiB`. Con el umbral relativo
   por defecto (0,4) RabbitMQ lo calcularía sobre la RAM del host (~780 MB, nunca se dispararía
   antes del límite de 224M) o sobre el límite del contenedor (~90 MB, **por debajo de su consumo
@@ -283,9 +287,12 @@ cifrado por el puerto 22, que ya está permitido para tu IP. Se cierra con `Ctrl
 | Variable | Servidor que la define | Clientes que la usan |
 |---|---|---|
 | `POSTGRES_PASSWORD` | `postgres-db` (`POSTGRES_PASSWORD`) | `order-api` (`DB_PASSWORD`) |
-| `RABBITMQ_PASSWORD` | `rabbitmq` (`RABBITMQ_DEFAULT_PASS`; consola 15672) | `order-processor`, `billing-worker`, `inventory-worker`, `notification-worker` (`SPRING_RABBITMQ_PASSWORD`) |
+| `RABBITMQ_PASSWORD` | `rabbitmq` (`RABBITMQ_DEFAULT_PASS`; consola 15672) | `order-processor`, `billing-worker`, `inventory-worker`, `notification-worker` (`RABBITMQ_PASSWORD`) |
 
 * Una sola variable por contraseña: servidor y clientes no pueden quedar con valores distintos.
+* Un solo esquema de variables de conexión, el mismo que leen los `application.yml` y `worker-comun.yml`:
+  `KAFKA_BOOTSTRAP`, `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD` y
+  `RABBITMQ_HOST`/`RABBITMQ_PORT`/`RABBITMQ_USER`/`RABBITMQ_PASSWORD` (anchors `x-kafka` y `x-rabbit`).
 * Son **obligatorias** (`${VAR:?...}`): sin ellas `docker compose` se niega a arrancar.
 * `.env` va junto a `docker-compose.yml`, está ignorado por Git (`.gitignore`) y por Docker
   (`.dockerignore`). Plantilla versionada sin valores: `.env.example`.
@@ -351,19 +358,19 @@ cd ~/ecommerce-hibrido && docker compose pull postgres-db kafka rabbitmq
 
 ### Transferir los archivos de configuración
 Opción A (recomendada si `/home/ubuntu/ecommerce-hibrido` es un clon Git): hacer commit y push en
-Windows y `git pull` en Ubuntu. El `.gitattributes` de `ops/aws/` garantiza LF.
+Windows y `git pull` en Ubuntu. El `.gitattributes` de la raíz (y el de `ops/aws/`) garantiza LF en `.sh` y `.conf`.
 
 Opción B (SCP de los archivos de configuración):
 ```powershell
 # [Windows PowerShell] desde C:\Projects\Ecommerce-Hibrido
 scp -i <RUTA_CLAVE.pem> docker-compose.yml .env.example ubuntu@<IP>:/home/ubuntu/ecommerce-hibrido/
-scp -i <RUTA_CLAVE.pem> -r ops/aws ubuntu@<IP>:/home/ubuntu/ecommerce-hibrido/ops/
+scp -i <RUTA_CLAVE.pem> -r ops/aws ops/rabbitmq ubuntu@<IP>:/home/ubuntu/ecommerce-hibrido/ops/
 scp -i <RUTA_CLAVE.pem> docs/despliegue-aws.md ubuntu@<IP>:/home/ubuntu/ecommerce-hibrido/docs/
 ```
 ```bash
 # [Ubuntu] comprobar finales de línea y validar
-cd ~/ecommerce-hibrido && file ops/aws/*.sh ops/aws/rabbitmq/20-aws.conf docker-compose.yml
-# si aparece "CRLF" en .sh o .conf: sed -i 's/\r$//' ops/aws/*.sh ops/aws/rabbitmq/20-aws.conf
+cd ~/ecommerce-hibrido && file ops/aws/*.sh ops/rabbitmq/20-memoria.conf docker-compose.yml
+# si aparece "CRLF" en .sh o .conf: sed -i 's/\r$//' ops/aws/*.sh ops/rabbitmq/20-memoria.conf
 # (docker-compose.yml admite CRLF sin problema)
 # .env: se crea en EC2 desde .env.example (nunca se copia por SCP ni se versiona). Ver §7.1.
 docker compose config --quiet && echo OK     # --quiet: no imprime las contraseñas
@@ -505,7 +512,7 @@ docker compose restart order-api     # reiniciar un servicio concreto
 
 ## 15. Reversión si la optimización falla
 
-La optimización solo afecta a `docker-compose.yml`, `ops/aws/` y esta guía; el código Java, los
+La optimización solo afecta a `docker-compose.yml`, `ops/aws/`, `ops/rabbitmq/` y esta guía; el código Java, los
 `application.yml`, `pom.xml` y el `Dockerfile` no se tocaron. Punto de restauración de la
 configuración de la etapa 7: commit `a0b8dbb`.
 
@@ -543,7 +550,8 @@ sobre el modelo resuelto por `docker compose config` (`--format json`):
 * **Iguales:** los 10 servicios y sus `container_name`, `build` (contexto, Dockerfile, `MODULO`),
   `depends_on`, redes (`ecommerce-net`), volúmenes (`postgres-data`, `analytics-datos`),
   `restart: unless-stopped`, toda la configuración de Kafka excepto el heap, usuarios,
-  `KAFKA_BOOTSTRAP`, `SPRING_RABBITMQ_*`, `DB_*`, `CORS_ORIGINS`, `ARCHIVO_ORDENES`.
+  `KAFKA_BOOTSTRAP`, `DB_*`, `CORS_ORIGINS`, `ARCHIVO_ORDENES`. Las variables de RabbitMQ pasaron de
+  `SPRING_RABBITMQ_*` a `RABBITMQ_HOST`/`PORT`/`USER`/`PASSWORD` (mismos valores).
 * **Nuevo nivel superior:** `name: ecommerce-hibrido` (fija el nombre de proyecto: volúmenes e
   imágenes no dependen del nombre de la carpeta) y `x-logging` (json-file 10m × 3 en los 10 servicios).
 * **Microservicios:** `image: ecommerce-hibrido-<modulo>:latest`, `pull_policy: never`,
@@ -551,7 +559,7 @@ sobre el modelo resuelto por `docker compose config` (`--format json`):
   healthchecks de order-api y dashboard (§10). analytics-service baja de 0.5 a 0.25 CPU.
 * **Kafka:** sin `ports`; `KAFKA_HEAP_OPTS`; healthcheck con heap propio y 30 s; límite 448M.
 * **RabbitMQ:** solo 15672 publicado, y únicamente en `127.0.0.1` (túnel SSH); `RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS`;
-  montaje de `20-aws.conf`; healthcheck 30 s; límite 224M / 0.4 CPU.
+  montaje de `ops/rabbitmq/20-memoria.conf`; healthcheck 30 s; límite 224M / 0.4 CPU.
 * **PostgreSQL:** sin `ports`; `command` con 4 parámetros; healthcheck 20 reintentos; 128M / 0.3 CPU.
 * **Credenciales:** en la etapa 7 estaban escritas en el archivo; ahora `POSTGRES_PASSWORD` y
   `RABBITMQ_PASSWORD` llegan de `.env` y son obligatorias (§7.1).
