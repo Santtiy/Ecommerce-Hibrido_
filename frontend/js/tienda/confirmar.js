@@ -3,6 +3,7 @@
 import { porId, crear, bloqueJson } from '../dom.js';
 import { URL_API, TEXTO_HTTP } from '../config.js';
 import { formatoPesos, formatoNumero } from '../formato.js';
+import { precioConIva } from '../calculo.js';
 import { icono } from '../iconos.js';
 import { lineasDelCarrito, itemsDeLaOrden, carritoVacio } from './carrito.js';
 import { fotoProducto } from './controles.js';
@@ -20,7 +21,7 @@ export function pintarResumen() {
     const li = crear('li');
     li.append(fotoProducto(producto, 'miniatura'), crear('span', 'nombre', producto.nombre),
       crear('span', 'cantidad', '× ' + formatoNumero.format(cantidad)),
-      crear('span', 'importe', formatoPesos.format(producto.precio * cantidad)));
+      crear('span', 'importe', formatoPesos.format(precioConIva(producto.precio * cantidad))));
     lista.append(li);
   });
   contenido.replaceChildren(lista, crearResumenPedido(itemsDeLaOrden()));

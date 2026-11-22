@@ -130,6 +130,6 @@ classDiagram
 |---|---|---|
 | `Orden` | Entidad rica | Sin setters; el constructor es de paquete (solo lo usa `OrdenBuilder`); `reconstituir` es para el mapper de JPA |
 | `Dinero`, `OrdenId`, `ItemOrden` | Records con Fail-Fast | Validan en el constructor compacto y lanzan `OrdenInvalidaException` |
-| `EstrategiaDescuento`, `EstrategiaImpuesto` | Strategy | `DescuentoPorMonto`: 10 % desde un subtotal de 100.000, inclusive; `IvaColombia`: 19 %. Se eligen en `ConfiguracionDominio` |
+| `EstrategiaDescuento`, `EstrategiaImpuesto` | Strategy | `IvaColombia` incluye el 19 % en los precios base; luego `DescuentoPorMonto` aplica el 10 % desde 100.000 con IVA incluido, inclusive. Se eligen en `ConfiguracionDominio` |
 | `OrdenBuilder` | Builder | Exige cliente y al menos un ítem; recibe un `Clock` para poder probar la fecha |
 | `OrdenRepository` | Repository | Puerto en `dominio/puertos/`; `BandejaSalida` y `AuditoriaRepository` están en `aplicacion/puertos/` |

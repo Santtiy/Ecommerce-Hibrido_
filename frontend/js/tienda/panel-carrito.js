@@ -3,7 +3,7 @@
 
 import { porId, crear, repintarConservandoFoco } from '../dom.js';
 import { formatoPesos, formatoNumero } from '../formato.js';
-import { estimar } from '../calculo.js';
+import { estimar, precioConIva } from '../calculo.js';
 import { icono } from '../iconos.js';
 import { lineasDelCarrito, itemsDeLaOrden, unidadesEnCarrito, ponerCantidad, carritoVacio } from './carrito.js';
 import { fotoProducto, selectorCantidad } from './controles.js';
@@ -23,7 +23,7 @@ function lineaCarrito({ producto, cantidad }) {
   li.append(
     fotoProducto(producto, 'miniatura'),
     crear('span', 'nombre', producto.nombre),
-    crear('span', 'importe', formatoPesos.format(producto.precio * cantidad)),
+    crear('span', 'importe', formatoPesos.format(precioConIva(producto.precio * cantidad))),
     selectorCantidad(producto),
     quitar);
   return li;

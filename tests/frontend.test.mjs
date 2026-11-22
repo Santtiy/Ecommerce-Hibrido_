@@ -20,7 +20,8 @@ const carrito = await import('../frontend/js/tienda/carrito.js');
 const filtros = await import('../frontend/js/tienda/filtros.js');
 const favoritos = await import('../frontend/js/tienda/favoritos.js');
 const { CATALOGO, CATEGORIAS } = await import('../frontend/js/tienda/productos.js');
-const { estimar, predecir } = await import('../frontend/js/calculo.js');
+const { estimar, predecir, precioConIva } = await import('../frontend/js/calculo.js');
+const { formatoPesos } = await import('../frontend/js/formato.js');
 const { claseEstado, resultadoOrden } = await import('../frontend/js/estados.js');
 const { crearResumenPedido } = await import('../frontend/js/tienda/resumen-pedido.js');
 
@@ -57,10 +58,13 @@ test('recursos, imports y exportaciones son válidos; el frontend cabe en 750 Ki
 
 test('subtotal, descuento e IVA aplican el umbral inclusivo y conservan los centavos', () => {
   assert.deepEqual(estimar([]), { subtotal: 0, descuento: 0, iva: 0, total: 0 });
-  assert.deepEqual(estimar([{ cantidad: 1, precioUnitario: 150000 }]), { subtotal: 150000, descuento: 15000, iva: 25650, total: 160650 });
-  assert.deepEqual(estimar([{ cantidad: 5, precioUnitario: 20000 }]), { subtotal: 100000, descuento: 10000, iva: 17100, total: 107100 });
-  assert.equal(estimar([{ cantidad: 1, precioUnitario: 99999.99 }]).descuento, 0);
-  assert.equal(estimar([{ cantidad: 1, precioUnitario: 100000.01 }]).descuento, 10000);
+  assert.deepEqual(estimar([{ cantidad: 1, precioUnitario: 150000 }]), { subtotal: 178500, descuento: 17850, iva: 25650, total: 160650 });
+  assert.deepEqual(estimar([{ cantidad: 5, precioUnitario: 20000 }]), { subtotal: 119000, descuento: 11900, iva: 17100, total: 107100 });
+  assert.equal(precioConIva(20000), 23800);
+  assert.deepEqual(estimar([{ cantidad: 1, precioUnitario: 20000 }]), { subtotal: 23800, descuento: 0, iva: 3800, total: 23800 });
+  assert.deepEqual(estimar([{ cantidad: 1, precioUnitario: 84033.61 }]), { subtotal: 100000, descuento: 10000, iva: 14369.75, total: 90000 });
+  assert.equal(estimar([{ cantidad: 1, precioUnitario: 84033.60 }]).descuento, 0);
+  assert.equal(estimar([{ cantidad: 1, precioUnitario: 84033.62 }]).total, 90000.01);
   assert.equal(estimar([{ cantidad: 3, precioUnitario: 59900 }]).total, 192458.7);
   const items = [{ nombre: 'Libro', cantidad: 1 }, { nombre: 'USB', cantidad: 11 }];
   assert.equal(predecir(items, 1000000).pagoRechazado, false);
@@ -69,11 +73,11 @@ test('subtotal, descuento e IVA aplican el umbral inclusivo y conservan los cent
 });
 
 test('el resumen conserva promoción, envío gratis y avisos de pago y stock', () => {
-  const limite = crearResumenPedido([{ cantidad: 1, precioUnitario: 100000 }]);
+  const limite = crearResumenPedido([{ cantidad: 1, precioUnitario: 84033.61 }]);
   assert.match(limite.textContent, /Ahorras/);
   assert.equal(limite.querySelector('progress'), null);
   assert.ok(limite.querySelector('.descuento'));
-  const debajo = crearResumenPedido([{ cantidad: 1, precioUnitario: 99999.99 }]);
+  const debajo = crearResumenPedido([{ cantidad: 1, precioUnitario: 84033.60 }]);
   assert.match(debajo.textContent, /pendiente/);
   assert.ok(debajo.querySelector('progress'));
   assert.equal(debajo.querySelector('.descuento'), null);
@@ -87,25 +91,26 @@ test('el resumen conserva promoción, envío gratis y avisos de pago y stock', (
   assert.equal(crearResumenPedido([]).querySelector('.totales'), null);
 });
 
-test('el pedido de la captura no activa el descuento por superar el umbral solo con IVA', () => {
+test('el pedido de la captura incluye el IVA en los precios y no lo cobra otra vez al confirmar', () => {
   const items = [
     { nombre: 'Memoria USB 4 GB', cantidad: 2, precioUnitario: 20000 },
     { nombre: 'Mouse inalámbrico', cantidad: 1, precioUnitario: 59900 },
   ];
-  assert.deepEqual(estimar(items), { subtotal: 99900, descuento: 0, iva: 18981, total: 118881 });
+  assert.deepEqual(estimar(items), { subtotal: 118881, descuento: 11888.1, iva: 17082.9, total: 106992.9 });
   const resumen = crearResumenPedido(items);
-  assert.match(resumen.textContent, /pendiente/);
-  assert.equal(resumen.querySelector('.descuento'), null);
-  assert.equal(resumen.querySelector('progress').value, 99900);
-  assert.equal(resumen.querySelector('progress').max, 100000);
+  assert.match(resumen.textContent, /Ahorras/);
+  assert.ok(resumen.querySelector('.descuento'));
+  assert.equal(resumen.querySelector('progress'), null);
+  assert.equal(resumen.querySelectorAll('.total')[1].textContent, formatoPesos.format(106992.9));
+  assert.equal(resumen.querySelectorAll('.impuesto-incluido')[1].textContent, formatoPesos.format(17082.9));
 });
 
 test('el carrito conserva cantidades, límites y el contrato de los ítems', () => {
   carrito.vaciarCarrito();
   carrito.ponerCantidad('USB-001', 5);
-  assert.equal(estimar(carrito.itemsDeLaOrden()).descuento, 10000);
+  assert.equal(estimar(carrito.itemsDeLaOrden()).descuento, 11900);
   carrito.sumarCantidad('USB-001', 1);
-  assert.equal(estimar(carrito.itemsDeLaOrden()).descuento, 12000);
+  assert.equal(estimar(carrito.itemsDeLaOrden()).descuento, 14280);
   assert.deepEqual(carrito.itemsDeLaOrden()[0], { sku: 'USB-001', nombre: 'Memoria USB 4 GB', cantidad: 6, precioUnitario: 20000 });
   carrito.ponerCantidad('USB-001', 150);
   assert.equal(carrito.cantidadDe('USB-001'), 99);
@@ -255,6 +260,8 @@ test('la tienda arranca una vez y permite buscar, ver una ficha, confirmar y seg
   assert.equal(conexiones.length, 1);
   assert.equal(nodo('vitrina').children.length, 12);
   assert.equal(nodo('continuar').disabled, true);
+  assert.equal(nodo('vitrina').children[2].querySelector('.precio').textContent, formatoPesos.format(23800));
+  assert.equal(nodo('vitrina').children[2].querySelector('.iva-producto').textContent, 'IVA 19 % incluido');
 
   nodo('buscar').value = 'audifonos';
   await nodo('buscar').emitir('input');
@@ -267,11 +274,17 @@ test('la tienda arranca una vez y permite buscar, ver una ficha, confirmar y seg
   eventos.get('hashchange')();
   assert.equal(nodo('detalle-producto').hidden, false);
   assert.equal(document.getElementById('titulo-detalle').textContent, 'Memoria USB 4 GB');
+  assert.equal(nodo('detalle-producto').querySelector('.precio-grande').textContent, formatoPesos.format(23800));
 
-  carrito.ponerCantidad('USB-001', 6);
+  carrito.ponerCantidad('USB-001', 1);
+  assert.equal(nodo('contenido-carrito').querySelector('.importe').textContent, formatoPesos.format(23800));
+  assert.match(nodo('resumen-encabezado').textContent, /23.800/);
   await nodo('continuar').emitir('click');
   assert.equal(nodo('paso-productos').hidden, true);
   assert.equal(nodo('paso-confirmar').hidden, false);
+  assert.equal(nodo('resumen-pedido').querySelector('.importe').textContent, formatoPesos.format(23800));
+  assert.equal(nodo('resumen-pedido').querySelectorAll('.total')[1].textContent, formatoPesos.format(23800));
+  carrito.ponerCantidad('USB-001', 6);
   assert.match(nodo('resumen-pedido').textContent, /Ahorras/);
   let peticiones = 0;
   globalThis.fetch = async () => {

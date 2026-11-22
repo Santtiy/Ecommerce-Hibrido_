@@ -3,7 +3,7 @@
 
 import { porId, crear } from '../dom.js';
 import { REGLAS } from '../config.js';
-import { estimar } from '../calculo.js';
+import { estimar, precioConIva } from '../calculo.js';
 import { formatoPesos, formatoNumero } from '../formato.js';
 import { CATALOGO, nombreCategoria, enlaceProducto } from './productos.js';
 import { cantidadDe } from './carrito.js';
@@ -34,11 +34,11 @@ function condiciones(producto) {
   const lista = crear('ul', 'condiciones');
   lista.append(
     crear('li', '', 'Envío gratis.'),
-    crear('li', '', `${REGLAS.porcentajeDescuento} % de descuento desde ${formatoPesos.format(REGLAS.umbralDescuento)} de subtotal, antes de IVA (RN-14).`),
+    crear('li', '', `${REGLAS.porcentajeDescuento} % de descuento desde ${formatoPesos.format(REGLAS.umbralDescuento)} de subtotal con IVA incluido (RN-14).`),
     crear('li', '', `Máximo ${REGLAS.maximoUnidades} unidades por producto; con más no habrá stock (RN-12).`));
   if (estimar([{ cantidad: 1, precioUnitario: producto.precio }]).total > REGLAS.limitePago) {
     lista.append(crear('li', 'alerta',
-      `Con IVA, este producto supera por sí solo el límite de pago de ${formatoPesos.format(REGLAS.limitePago)}: el pago se rechazará (RN-11).`));
+      `Este producto supera por sí solo el límite de pago de ${formatoPesos.format(REGLAS.limitePago)}: el pago se rechazará (RN-11).`));
   }
   return lista;
 }
@@ -59,7 +59,7 @@ function relacionados(producto) {
   elegidos.forEach((p) => {
     const enlace = crear('a', 'mini-producto');
     enlace.href = enlaceProducto(p.sku);
-    enlace.append(fotoProducto(p, 'foto-mini'), crear('span', 'nombre', p.nombre), crear('span', 'precio', formatoPesos.format(p.precio)));
+    enlace.append(fotoProducto(p, 'foto-mini'), crear('span', 'nombre', p.nombre), crear('span', 'precio', formatoPesos.format(precioConIva(p.precio))));
     const li = crear('li');
     li.append(enlace);
     lista.append(li);
@@ -82,7 +82,8 @@ export function mostrarDetalle(producto, { alElegirCategoria }) {
   const favorito = botonFavorito(producto, true);
 
   const info = crear('div', 'ficha-info');
-  info.append(crear('p', 'sku', producto.sku), titulo, crear('p', 'precio-grande', formatoPesos.format(producto.precio)),
+  info.append(crear('p', 'sku', producto.sku), titulo, crear('p', 'precio-grande', formatoPesos.format(precioConIva(producto.precio))),
+    crear('p', 'meta', 'IVA 19 % incluido'),
     crear('p', 'descripcion', producto.descripcion), caracteristicas, enCarrito, compra, favorito, condiciones(producto));
   const marco = crear('div', 'ficha-foto');
   marco.append(foto);

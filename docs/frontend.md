@@ -41,6 +41,17 @@ ejecución ni otro servidor. Maven copia `frontend/` dentro del JAR de `dashboar
 Los cambios de JavaScript se ejecutan en el navegador. La reducción de las fotos ahorra espacio en los archivos
 del servidor y bytes de descarga; los límites de órdenes reducen el crecimiento de memoria del navegador.
 
+## Precios e IVA
+
+Todos los productos de esta aplicación usan el mismo IVA del 19 %. El catálogo conserva los precios base para
+`POST /order`; las vistas usan `precioConIva` para anunciar el precio con impuesto desde el catálogo hasta la
+confirmación. Por ejemplo, una USB de base $20.000 se anuncia a $23.800, IVA incluido.
+
+El descuento del 10 % se activa desde $100.000 de subtotal **con IVA incluido**. Un importe anunciado de $100.000
+queda en $90.000 finales. El resumen muestra el IVA contenido en el total después del descuento; no vuelve a sumarlo.
+En el backend, `Orden.calcularTotal` sigue usando Strategy: primero `EstrategiaImpuesto`, luego `EstrategiaDescuento`.
+Las interfaces y el contrato HTTP se conservan. Los pedidos ya guardados mantienen su total original.
+
 ## Comprobaciones de desarrollo
 
 Con Node.js 22 o posterior, desde la raíz:

@@ -2,7 +2,7 @@ package co.edu.proyecto.orden.dominio.descuentos;
 
 import co.edu.proyecto.orden.dominio.Dinero;
 
-/** RN-14: 10 % de descuento desde un subtotal de 100.000, inclusive. */
+/** RN-14: 10 % de descuento desde un subtotal con IVA incluido de 100.000, inclusive. */
 public class DescuentoPorMonto implements EstrategiaDescuento {
 
     private static final String UMBRAL = "100000";

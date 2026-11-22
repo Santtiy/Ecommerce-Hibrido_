@@ -28,7 +28,7 @@ class CalculoTotalTest {
     }
 
     @Test
-    void cienMilExactosQuedanEnNoventaMilAntesDelIva() {
+    void cienMilDeBaseIncluyenIvaYDescuentoEnElTotal() {
         // Arrange
         Orden orden = ordenDe("100000");
 
@@ -40,15 +40,51 @@ class CalculoTotalTest {
     }
 
     @Test
-    void porDebajoDelUmbralSoloSeAplicaElIva() {
+    void porDebajoDelUmbralConIvaNoSeAplicaDescuento() {
         // Arrange
-        Orden orden = ordenDe("90000");
+        Orden orden = ordenDe("80000");
 
         // Act
         Dinero total = orden.calcularTotal(new DescuentoPorMonto(), new IvaColombia());
 
         // Assert
-        assertThat(total).isEqualTo(Dinero.de("107100", "COP"));
+        assertThat(total).isEqualTo(Dinero.de("95200", "COP"));
+    }
+
+    @Test
+    void cienMilAnunciadosConIvaQuedanEnNoventaMilFinales() {
+        // Arrange
+        Orden orden = ordenDe("84033.61"); // Con IVA: 100.000,00.
+
+        // Act
+        Dinero total = orden.calcularTotal(new DescuentoPorMonto(), new IvaColombia());
+
+        // Assert
+        assertThat(total).isEqualTo(Dinero.de("90000", "COP"));
+    }
+
+    @Test
+    void debajoDeCienMilAnunciadosNoSeActivaElDescuento() {
+        // Arrange
+        Orden orden = ordenDe("84033.60"); // Con IVA: 99.999,98.
+
+        // Act
+        Dinero total = orden.calcularTotal(new DescuentoPorMonto(), new IvaColombia());
+
+        // Assert
+        assertThat(total).isEqualTo(Dinero.de("99999.98", "COP"));
+    }
+
+    @Test
+    void laEstrategiaDeIvaSeAplicaTambienSinDescuento() {
+        // Arrange
+        Orden orden = ordenDe("100000");
+
+        // Act
+        Dinero total = orden.calcularTotal(new SinDescuento(), new IvaColombia());
+
+        // Assert
+        assertThat(total).isEqualTo(Dinero.de("119000", "COP"));
     }
 
     @Test

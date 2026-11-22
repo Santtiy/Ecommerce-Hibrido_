@@ -23,7 +23,7 @@ export const ETAPAS = [
 
 // Copia de las reglas del backend, solo para estimar y avisar en el navegador (la decisión la toma el servidor).
 export const REGLAS = {
-  umbralDescuento: 100000,    // RN-14, DescuentoPorMonto: 10 % desde este subtotal, inclusive
+  umbralDescuento: 100000,    // RN-14: 10 % desde este subtotal con IVA incluido, inclusive
   porcentajeDescuento: 10,
   porcentajeIva: 19,          // IvaColombia
   limitePago: 1000000,        // RN-11, ReglaPago: el pago falla si el total lo supera

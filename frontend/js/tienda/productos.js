@@ -14,7 +14,7 @@ export const CATEGORIAS = [
   { id: 'libros', nombre: 'Libros' },
 ];
 
-/** Catálogo de la tienda. El precio va en pesos; order-api le asigna la moneda (COP). */
+/** Precios base en pesos para order-api. Las vistas muestran precioConIva(precio), con el 19 % incluido. */
 export const CATALOGO = [
   { sku: 'LIB-001', categoria: 'libros', nombre: 'Libro: Said bin Sultan', detalle: 'Tapa dura', precio: 150000,
     descripcion: 'Libro de tapa dura forrada en tela verde, con el título y un emblema grabados en dorado en la portada.',

@@ -4,6 +4,7 @@
 
 import { porId, crear } from '../dom.js';
 import { REGLAS } from '../config.js';
+import { precioConIva } from '../calculo.js';
 import { formatoPesos, formatoNumero } from '../formato.js';
 import { CATALOGO, CATEGORIAS, nombreCategoria, enlaceProducto } from './productos.js';
 import { cantidadDe } from './carrito.js';
@@ -37,7 +38,8 @@ function crearTarjeta(producto) {
   const aviso = crear('p', 'aviso-stock', `Más de ${REGLAS.maximoUnidades} unidades: no habrá stock (RN-12).`);
   const cuerpo = crear('div', 'cuerpo-producto');
   cuerpo.append(crear('p', 'categoria-producto', nombreCategoria(producto.categoria)), titulo,
-    crear('p', 'detalle', producto.detalle), crear('p', 'precio', formatoPesos.format(producto.precio)),
+    crear('p', 'detalle', producto.detalle), crear('p', 'precio', formatoPesos.format(precioConIva(producto.precio))),
+    crear('p', 'iva-producto', 'IVA 19 % incluido'),
     crear('p', 'envio-producto', 'Envío gratis'), compra, aviso);
   tarjeta.append(marco, cuerpo);
   tarjetas.set(producto.sku, { producto, tarjeta, compra, aviso, favorito });

@@ -19,13 +19,13 @@ function totales({ subtotal, descuento, iva, total }) {
   const fila = (termino, valor, clase = '') => {
     lista.append(crear('dt', clase, termino), crear('dd', clase, valor));
   };
-  fila('Subtotal', formatoPesos.format(subtotal));
+  fila('Subtotal (IVA incluido)', formatoPesos.format(subtotal));
   if (descuento > 0) {
     fila(`Descuento ${REGLAS.porcentajeDescuento} %`, '− ' + formatoPesos.format(descuento), 'descuento');
   }
-  fila(`IVA ${REGLAS.porcentajeIva} %`, formatoPesos.format(iva));
   fila('Envío', 'Gratis', 'envio');
   fila('Total', formatoPesos.format(total), 'total');
+  fila(`IVA incluido (${REGLAS.porcentajeIva} %)`, formatoPesos.format(iva), 'impuesto-incluido');
   return lista;
 }
 
@@ -36,7 +36,7 @@ function beneficio({ subtotal, descuento }) {
   titulo.append(icono(activo ? 'hecho' : 'regalo'), crear('strong', '',
     activo ? `¡Tu ${REGLAS.porcentajeDescuento} % ya está activo!` : `Descuento del ${REGLAS.porcentajeDescuento} % pendiente`));
 
-  let texto = `Recibe el ${REGLAS.porcentajeDescuento} % de descuento desde ${formatoPesos.format(REGLAS.umbralDescuento)} de subtotal, antes de IVA.`;
+  let texto = `Recibe el ${REGLAS.porcentajeDescuento} % de descuento desde ${formatoPesos.format(REGLAS.umbralDescuento)} de subtotal con IVA incluido.`;
   if (activo) {
     texto = `Ahorras ${formatoPesos.format(descuento)} en productos. El envío también es gratis.`;
   }
@@ -46,7 +46,7 @@ function beneficio({ subtotal, descuento }) {
     progreso.max = REGLAS.umbralDescuento;
     progreso.value = subtotal;
     progreso.setAttribute('aria-label', 'Subtotal para alcanzar el descuento');
-    caja.append(progreso, crear('small', '', `Subtotal actual: ${formatoPesos.format(subtotal)} · antes de IVA`));
+    caja.append(progreso, crear('small', '', `Subtotal actual: ${formatoPesos.format(subtotal)} · IVA incluido`));
   }
   return caja;
 }
