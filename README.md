@@ -1,4 +1,4 @@
-# Ecommerce-Hibrido (v2)
+# Ecommerce-Hibrido
 
 Plataforma de órdenes de comercio electrónico con **arquitectura de microservicios orientada a eventos e híbrida**:
 
@@ -7,8 +7,11 @@ Plataforma de órdenes de comercio electrónico con **arquitectura de microservi
 - **PostgreSQL** guarda las órdenes, la bandeja de salida y la auditoría.
 - Un **dashboard** web muestra en tiempo real el estado de cada orden.
 
-Proyecto integrador (POO, Sistemas Distribuidos y Sistemas Operativos). Esta versión es una reconstrucción
-completa con las correcciones de la auditoría: ver [`docs/correcciones.md`](docs/correcciones.md).
+Por qué Kafka para los eventos y RabbitMQ para los comandos: [`docs/kafka-vs-rabbitmq.md`](docs/kafka-vs-rabbitmq.md).
+
+Proyecto integrador (POO, Sistemas Distribuidos y Sistemas Operativos). Cada requisito del enunciado, con el archivo
+donde se cumple y cómo comprobarlo, está en [`docs/cumplimiento-enunciado.md`](docs/cumplimiento-enunciado.md);
+las correcciones respecto a la versión anterior, en [`docs/correcciones.md`](docs/correcciones.md).
 
 ## Arquitectura
 
@@ -61,23 +64,96 @@ Tras editar el front, vuelve a empaquetar `dashboard-aggregator` (o reinicia el 
 
 ## Estructura de cada servicio
 
-Todos los servicios tienen los mismos paquetes:
+Cada servicio tiene **solo las capas que necesita**. La regla para encontrar cualquier cosa: lo de negocio en
+`dominio/`, los casos de uso en `aplicacion/`, cada tecnología en su subpaquete de `infraestructura/` y la
+configuración en `configuracion/`.
 
 | Paquete | Qué contiene |
 |---|---|
-| `dominio/` | Reglas de negocio puras (entidades, value objects, reglas, estrategias) en Java puro, sin Spring. Lo comprueba el `DominioPuroTest` de cada servicio |
+| `dominio/` | Reglas de negocio en Java puro, sin Spring, Jakarta, JPA ni Kafka. Lo comprueba el `DominioPuroTest` de cada servicio que lo tiene |
 | `aplicacion/` | Casos de uso que coordinan puertos, y las interfaces de esos puertos (`puertos/`). Única anotación de Spring permitida: `@Transactional` |
 | `infraestructura/` | Adaptadores, cada uno en el subpaquete de su tecnología: `rest/`, `persistencia/`, `kafka/`, `rabbitmq/`, `websocket/`. En order-api, `bandejasalida/` (outbox: JPA + Kafka) va junto |
-| `configuracion/` | Solo clases `@Configuration` |
+| `configuracion/` | Solo clases `@Configuration`: `ConfiguracionDominio` (beans de negocio), `ConfiguracionMensajeria` (Kafka/RabbitMQ) y, si hay web, `ConfiguracionWeb` o `ConfiguracionWebSocket` |
 
-El criterio de cada capa está en el `package-info.java` de su paquete. El módulo de Sistemas Operativos está en
-`analytics-service/.../analytics/sistemasoperativos/`.
+El criterio de cada capa está en el `package-info.java` de su paquete. Rutas relativas a
+`backend/<módulo>/src/main/java/co/edu/proyecto/`:
 
-Los nombres de topics, colas, exchanges, estados y grupos están en un solo sitio:
-`backend/common/src/main/java/co/edu/proyecto/common/nombres/`.
+**`common/`** (Java puro, sin Spring: lo que viaja por los brokers)
 
-La configuración de Kafka y RabbitMQ que comparten los servicios (reintentos, JSON, fanout `order_tasks`, cola de
-fallidos) está en `backend/common-mensajeria/`; cada servicio la importa con `@Import` desde su `ConfiguracionMensajeria`.
+| Paquete | Clases |
+|---|---|
+| `common/contratos/` | Records `OrdenCreada`, `ProcesarOrden`, `ResultadoTarea`, `ItemEvento`; enum `EstadoTarea` (`PAYMENT_SUCCESS`…); interfaz `ReglaTarea`; `Validaciones` |
+| `common/nombres/` | `Topicos`, `Colas`, `Exchanges`, `GruposConsumidores` y el enum `TipoTarea` (cola y topic de cada worker) |
+
+**`common-mensajeria/`** (Spring; Kafka y RabbitMQ son dependencias `<optional>`)
+
+| Paquete | Clases |
+|---|---|
+| `mensajeria/kafka/` | `ConfiguracionKafkaBase` (3 intentos), `ConsumidorQueReleeTodo` (relee el topic al arrancar) |
+| `mensajeria/rabbitmq/` | `ConfiguracionRabbitBase` (JSON + fanout `order_tasks`), `TopologiaWorker` (cola con DLX + `failed_tasks`) |
+| `mensajeria/tareas/` | `EjecutorTarea` (pausa, regla, envío a Kafka y ack después) |
+| `resources/worker-comun.yml` | `prefetch: 1`, `concurrency: 2`, 3 reintentos y productor Kafka de los tres workers |
+
+**`order-api/`** → `orden/`
+
+| Paquete | Clases |
+|---|---|
+| `dominio/` | `Orden`, `EstadoOrden`, `Dinero`, `OrdenId`, `ItemOrden`, `OrdenBuilder`; `descuentos/`, `impuestos/` (Strategy), `excepciones/`, `puertos/OrdenRepository` |
+| `aplicacion/` | `RegistrarOrdenService`, `RegistrarResultadoService`; `puertos/` (`BandejaSalida`, `AuditoriaRepository`, `RegistroAuditoria`) |
+| `infraestructura/rest/` | `OrdenController`, `CrearOrdenRequest`, `ItemRequest`, `RespuestaOrden`, `RespuestaError`, `ManejadorErrores` |
+| `infraestructura/persistencia/orden/` | `OrdenEntity`, `ItemOrdenEntity`, `OrdenMapper`, `OrdenRepositoryJpa`, `SpringDataOrdenes` |
+| `infraestructura/persistencia/auditoria/` | `AuditoriaEntity`, `AuditoriaRepositoryJpa`, `SpringDataAuditoria` |
+| `infraestructura/bandejasalida/` | `BandejaSalidaJpa`, `MensajePendienteEntity`, `SpringDataBandeja`, `PublicadorBandejaSalida` |
+| `infraestructura/kafka/` | `ConsumidorResultados` (los tres `*_events`, grupo `order-api-group`) |
+| `configuracion/` | `ConfiguracionDominio`, `ConfiguracionMensajeria`, `ConfiguracionWeb` (CORS) |
+
+**`order-processor/`** → `processor/`
+
+| Paquete | Clases |
+|---|---|
+| `aplicacion/` | `TraductorEventoAComando` (evento `OrdenCreada` → comando `ProcesarOrden`) |
+| `infraestructura/kafka/` | `ConsumidorNuevasOrdenes` (`new_orders`, grupo `processor-group`) |
+| `infraestructura/rabbitmq/` | `PublicadorTareas` (fanout `order_tasks`) |
+| `configuracion/` | `ConfiguracionDominio`, `ConfiguracionMensajeria` |
+
+**`billing-worker/`** → `billing/`, **`inventory-worker/`** → `inventory/`, **`notification-worker/`** → `notification/`
+
+| Paquete | billing | inventory | notification |
+|---|---|---|---|
+| `dominio/` | `ReglaPago` (RN-11) | `ReglaInventario` (RN-12) | `ReglaNotificacion` |
+| `infraestructura/rabbitmq/` | `ConsumidorPagos` | `ConsumidorInventario` | `ConsumidorNotificaciones` |
+| `configuracion/` | `ConfiguracionDominio`, `ConfiguracionMensajeria` | igual | igual |
+
+Las tres reglas implementan `ReglaTarea`; cada consumidor solo escucha su cola y delega en `EjecutorTarea`.
+
+**`analytics-service/`** → `analytics/`
+
+| Paquete | Clases |
+|---|---|
+| `dominio/` | `AgregadorVentas` |
+| `sistemasoperativos/` | `Bitacora`, `MonitorMemoria`, `DemostracionMemoria`, `OperacionES` (módulo de Sistemas Operativos, al primer nivel para encontrarlo sin buscar) |
+| `infraestructura/kafka/` | `ConsumidorNuevasOrdenes` (`new_orders`, grupo `analytics-group`; extiende `ConsumidorQueReleeTodo`) |
+| `configuracion/` | `ConfiguracionDominio`, `ConfiguracionMensajeria` |
+
+**`dashboard-aggregator/`** → `dashboard/`
+
+| Paquete | Clases |
+|---|---|
+| `dominio/` | `TableroOrdenes` (máx. 1.000 órdenes), `ProgresoOrden` (`{payment, stock, email}`; `"pending"` vive aquí) |
+| `infraestructura/kafka/` | `ConsumidorResultados` (los tres `*_events`, grupo `dashboard-group`; extiende `ConsumidorQueReleeTodo`) |
+| `infraestructura/websocket/` | `CanalWebSocket` (`/ws/ordenes`) |
+| `configuracion/` | `ConfiguracionDominio`, `ConfiguracionMensajeria`, `ConfiguracionWebSocket` |
+
+Diagramas de clases, secuencia, estados, entidad-relación y despliegue: [`docs/diagramas/`](docs/diagramas/README.md).
+
+## Idioma
+
+- **En inglés**, porque los dicta el enunciado: los módulos (`order-api`, `billing-worker`…), los topics
+  (`new_orders`, `billing_events`…), el exchange `order_tasks`, las colas (`billing_queue`…), los grupos
+  (`processor-group`…), los estados (`PAYMENT_SUCCESS`…, `"pending"`), los campos `{payment, stock, email}` y
+  `orderId`/`status` de los mensajes.
+- **En español**: el código (clases, métodos, variables, paquetes), los comentarios, los mensajes de error, los
+  scripts y la documentación.
 
 ## Requisitos
 
@@ -98,8 +174,10 @@ páginas pueden llamar a la API y abrir el WebSocket (por defecto `http://localh
 
 ## Compilar y probar
 
+Desde la raíz del repositorio (el `pom.xml` de la raíz solo agrega `backend/`, donde está el `pom.xml` padre):
+
 ```powershell
-mvn -B -f backend/pom.xml verify    # compila los 9 módulos y ejecuta las 88 pruebas unitarias
+mvn verify    # compila los 9 módulos y ejecuta las 88 pruebas unitarias
 ```
 
 Las pruebas no necesitan Docker ni Spring y todas rotulan sus partes con `// Arrange`, `// Act` y `// Assert`:
@@ -139,12 +217,51 @@ $orden = @{ cliente = "Ana Perez"; items = @(@{ sku = "LIB-001"; nombre = "Libro
 Invoke-RestMethod -Method Post -Uri http://localhost:8080/order -ContentType "application/json" -Body $orden
 ```
 
+## Prueba de punta a punta
+
+Con el sistema levantado (en Docker o con `ops\arrancar.ps1`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ops\verificar-flujo.ps1 -Memoria
+```
+
+Envía 3 órdenes válidas (todo correcto, pago rechazado por RN-11 y sin stock por RN-12) y 2 inválidas, y comprueba
+14 puntos: la respuesta HTTP (202/400 y el total), el estado y la auditoría en PostgreSQL, el registro de
+`analytics-service` y el `{payment, stock, email}` que entrega el WebSocket. `-Memoria` suma al final el consumo de
+cada contenedor. Contra otra máquina: `-Api http://<IP>:8080/order -WebSocket ws://<IP>:8081/ws/ordenes -Origen http://<IP>:8081`.
+
+## Agregar un microservicio
+
+Un servicio nuevo (por ejemplo `shipping-worker`) se integra en estos sitios; si falta uno, el servicio no se compila,
+no tiene imagen o no se despliega:
+
+1. **`backend/pom.xml`:** añadir `<module>shipping-worker</module>`. El `pom.xml` del módulo hereda del padre y declara
+   `common` y, si usa Kafka o RabbitMQ, `common-mensajeria` más `spring-kafka` / `spring-boot-starter-amqp` (en
+   `common-mensajeria` son opcionales: cada servicio declara solo lo que usa).
+2. **Código:** paquete `co.edu.proyecto.<nombre>` con `dominio/`, `infraestructura/<tecnología>/` y `configuracion/`
+   (`ConfiguracionDominio` y `ConfiguracionMensajeria` con `@Import` de lo que necesite de `common-mensajeria`), y un
+   `DominioPuroTest`. Los nombres nuevos de topics o colas van en `common/nombres/`. Si es un worker, basta con su
+   `ReglaTarea`, un valor nuevo en `TipoTarea` y su consumidor de ~10 líneas.
+3. **`backend/Dockerfile`:** añadir `COPY backend/shipping-worker/pom.xml backend/shipping-worker/` junto a los demás.
+4. **`docker-compose.yml`:** un servicio con `<<: *microservicio`, `image: ecommerce-hibrido-shipping-worker:latest`,
+   `build` con `MODULO: shipping-worker`, sus variables (`*kafka-env`, `*rabbit-env`), `depends_on` y
+   `deploy.resources.limits` (o los anchors `x-java-opts-pequeno` y `x-limites-pequeno`). Revisar antes el presupuesto de
+   memoria de la t3.small en [`docs/despliegue-aws.md`](docs/despliegue-aws.md).
+5. **`ops\arrancar.ps1`:** añadirlo a `$contenedoresApp` y a la tanda que le corresponda (`ops\detener.ps1` no
+   cambia: detiene lo que `arrancar.ps1` anotó en `.run\pids.txt`).
+6. **`ops/aws/exportar-imagenes.ps1`:** añadirlo a la lista de imágenes, y en `ops/aws/arrancar-aws.sh` a
+   `MICROSERVICIOS` y a su tanda (en `ops/aws/detener-aws.sh`, a la parada).
+7. **Documentación:** [`docs/servicios.md`](docs/servicios.md), la tabla de estructura de este README y los diagramas.
+
 ## Documentación
 
 | Documento | Contenido |
 |---|---|
+| [`docs/cumplimiento-enunciado.md`](docs/cumplimiento-enunciado.md) | Cada requisito del enunciado, dónde se cumple y cómo comprobarlo |
+| [`docs/kafka-vs-rabbitmq.md`](docs/kafka-vs-rabbitmq.md) | Cuándo un log de eventos y cuándo un broker de tareas, con ejemplos de este sistema |
+| [`docs/diagramas/`](docs/diagramas/README.md) | Arquitectura, clases del dominio, secuencia, estados, entidad-relación y despliegue (Mermaid) |
 | [`docs/servicios.md`](docs/servicios.md) | Servicios, topics, grupos, colas y tablas |
-| [`docs/correcciones.md`](docs/correcciones.md) | Cada corrección de la auditoría y dónde está en el código |
-| [`docs/decisiones.md`](docs/decisiones.md) | Decisiones técnicas tomadas durante la reconstrucción |
 | [`docs/revision-solid.md`](docs/revision-solid.md) | Dónde se ve cada principio SOLID y cada patrón |
+| [`docs/decisiones.md`](docs/decisiones.md) | Decisiones técnicas y por qué |
+| [`docs/correcciones.md`](docs/correcciones.md) | Cada corrección respecto a la versión anterior y dónde está en el código |
 | [`docs/despliegue-aws.md`](docs/despliegue-aws.md) | Despliegue en EC2 t3.small |

@@ -1,5 +1,7 @@
 # Servicios, mensajería y datos
 
+Diagrama de conjunto: [arquitectura](diagramas/arquitectura.md). Paquetes de cada servicio: [README](../README.md#estructura-de-cada-servicio).
+
 ## Servicios
 
 | Servicio | Responsabilidad | Consume | Produce | Puerto host |
@@ -24,7 +26,10 @@
 | `inventory_events` | 1 | `orderId` | `dashboard-group`, `order-api-group` |
 | `notification_events` | 1 | `orderId` | `dashboard-group`, `order-api-group` |
 
-Reintentos de los consumidores: `DefaultErrorHandler` con 3 intentos y 1 s entre ellos.
+Reintentos de los consumidores: `DefaultErrorHandler` con 3 intentos y 1 s entre ellos (`ConfiguracionKafkaBase`, en
+`common-mensajeria`). `analytics-group` y `dashboard-group` releen sus topics desde el inicio al arrancar
+(`ConsumidorQueReleeTodo`) para reconstruir su estado en memoria. Los nombres están en `common/nombres/`
+(`Topicos`, `GruposConsumidores`); la cola y el topic de cada worker, en el enum `TipoTarea`.
 `KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`: cada topic lo crea su productor con el número de particiones correcto.
 
 ## RabbitMQ
@@ -42,12 +47,14 @@ regla (`ReglaTarea`), su cola y su topic; el procesamiento común lo hace `Ejecu
 
 ## PostgreSQL (`backend/order-api/src/main/resources/schema.sql`)
 
+Diagrama: [entidad-relación](diagramas/entidad-relacion.md).
+
 | Tabla | Para qué |
 |---|---|
-| `ordenes` | La orden: estado, total, fecha de creación |
+| `ordenes` | La orden: estado (`CREADA`, `PAGADA`, `CANCELADA`), total, fecha de creación |
 | `items_orden` | Sus ítems (`CHECK cantidad > 0`, `CHECK precio_monto > 0`) |
 | `bandeja_salida` | Eventos guardados con la orden y aún no publicados |
-| `auditoria_ordenes` | Un resultado por orden, worker y estado (`UNIQUE`, idempotente) |
+| `auditoria_ordenes` | Un resultado por orden, worker y estado (`UNIQUE`, idempotente); `origen` es el nombre del `TipoTarea` (`PAGO`, `INVENTARIO`, `NOTIFICACION`) |
 
 ## Contratos (`common/.../contratos`)
 
@@ -57,3 +64,9 @@ regla (`ReglaTarea`), su cola y su topic; el procesamiento común lo hace `Ejecu
 | `ProcesarOrden` | RabbitMQ `order_tasks` | `orderId`, `items[]`, `total`, `solicitadoEn` |
 | `ResultadoTarea` | Kafka `*_events` | `orderId`, `status`, `detalle`, `ocurridoEn` |
 | `ItemEvento` | dentro de los dos primeros | `sku`, `nombre`, `cantidad`, `precioUnitario` |
+
+`status` es el enum `EstadoTarea`: en el JSON viaja su nombre (`PAYMENT_SUCCESS`, `PAYMENT_FAILED`, `STOCK_RESERVED`,
+`STOCK_OUT_OF_STOCK`, `EMAIL_SENT`), y cada valor sabe a qué `TipoTarea` pertenece y si es éxito.
+Los workers implementan `ReglaTarea.evaluar(ProcesarOrden, Instant) → ResultadoTarea`.
+
+Por qué los eventos van por Kafka y los comandos por RabbitMQ: [kafka-vs-rabbitmq.md](kafka-vs-rabbitmq.md).

@@ -3,8 +3,8 @@
 El proyecto tiene **un único archivo Compose, `docker-compose.yml`**, con la configuración
 optimizada para AWS EC2 t3.small. Este documento la describe junto con los scripts de `ops/aws/`.
 La configuración anterior de la **etapa 7** (VM de 8 GB / 4 vCPU, límites de 4368M y puertos de
-infraestructura publicados) ya no está en el árbol de trabajo; se conserva en el historial de Git
-(commit `a0b8dbb`) y es la referencia de las comparaciones de este documento.
+infraestructura publicados) ya no está en este repositorio; se conserva en el historial del repositorio de la
+versión anterior (commit `a0b8dbb`) y es la referencia de las comparaciones de este documento.
 
 | Archivo | Uso |
 |---|---|
@@ -24,7 +24,8 @@ infraestructura publicados) ya no está en el árbol de trabajo; se conserva en 
 
 ## 1. Arquitectura
 
-Diez contenedores en la red `ecommerce-net`:
+Diez contenedores en la red `ecommerce-net` (diagrama Mermaid con límites y puertos en
+[diagramas/despliegue.md](diagramas/despliegue.md)):
 
 ```
                     HTTP :8080                       HTTP/WS :8081
@@ -50,7 +51,7 @@ Diez contenedores en la red `ecommerce-net`:
 
 Contratos que **no cambian** en la variante AWS: topics `new_orders` (3 particiones, lo crea
 `order-api`), `billing_events`, `inventory_events`, `notification_events` (1 partición, los crea cada
-worker); grupos `processor-group`, `analytics-group`, `dashboard-group`; exchanges `order_tasks`
+worker); grupos `processor-group`, `analytics-group`, `dashboard-group`, `order-api-group`; exchanges `order_tasks`
 (fanout) y `order_tasks_dlx`; colas `*_queue` y `failed_tasks`; concurrencia 2 y prefetch 1 en los
 workers; `KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`. Todo eso está en el código Java, en los
 `application.yml` y en `worker-comun.yml` (común a los workers), que no cambiaron para AWS (después solo se les retiró la contraseña por
@@ -88,7 +89,7 @@ Memoria disponible real en t3.small: `MemTotal` ≈ 1,9 GiB; Ubuntu + `dockerd` 
 | notification-worker | 288M / 0.25 | 140M / 0.25 | **160M / 0.25** | 160m → **80m** | 130,5 MiB |
 | analytics-service | 320M / 0.5 | 140M / 0.25 | **160M / 0.25** | 192m → **80m** | 114,4 MiB |
 | postgres-db | 384M / 0.5 | 110M / 0.3 | **128M / 0.3** | shared_buffers 128MB → **32MB** | 38,0 MiB |
-| **Total** | **4368M / 4.5** | **~1800M / 3.85** | **2048M / 3.85** | | **1453,6 MiB** (`evidencias/e7/d-stats-limites.txt`) |
+| **Total** | **4368M / 4.5** | **~1800M / 3.85** | **2048M / 3.85** | | **1453,6 MiB** (`docker stats` de la etapa 7) |
 
 ### Por qué se ajustaron algunos valores de la propuesta inicial
 
@@ -304,8 +305,8 @@ cifrado por el puerto 22, que ya está permitido para tu IP. Se cierra con `Ctrl
 * **Cambiar un valor en `.env` no cambia la contraseña de un servicio que ya tiene datos**:
   `POSTGRES_PASSWORD` solo se aplica al inicializar un volumen vacío y `RABBITMQ_DEFAULT_PASS`
   solo si el nodo no tiene base de datos. La rotación se hace primero dentro del servicio
-  (`\password ecommerce` en `psql`, `rabbitmqctl change_password`) y en orden; se documentará
-  en la fase de migración.
+  (`\password ecommerce` en `psql`, `rabbitmqctl change_password`) y en orden, y solo después
+  se cambia `.env`.
 * No ejecutar `docker compose config` sin `--quiet` (imprime los valores resueltos) ni compartir
   la salida de `docker inspect` de los contenedores (incluye las variables de entorno).
 * `ops/aws/detener-aws.sh` funciona aunque falte `.env` (usa valores de relleno que nunca llegan
@@ -323,11 +324,11 @@ cifrado por el puerto 22, que ya está permitido para tu IP. Se cierra con `Ctrl
 ## 8. Construir y exportar las imágenes en Windows
 
 Las imágenes se construyen en Windows (no se compila Maven en EC2). Los nombres reales,
-comprobados en `evidencias/e7/c-imagenes.txt` y con `docker compose config --images`, son
-`ecommerce-hibrido-<modulo>:latest`, que es exactamente lo que declara `docker-compose.yml`.
+comprobados con `docker compose config --images`, son `ecommerce-hibrido-<modulo>:latest`, que es
+exactamente lo que declara `docker-compose.yml` (y lo que espera `exportar-imagenes.ps1`).
 
 ```powershell
-# [Windows PowerShell] desde C:\Projects\Ecommerce-Hibrido (Docker Desktop abierto)
+# [Windows PowerShell] desde la carpeta del proyecto (Docker Desktop abierto)
 docker compose build
 powershell -ExecutionPolicy Bypass -File ops\aws\exportar-imagenes.ps1 -IpServidor <IP> -RutaClave <RUTA.pem>
 ```
@@ -362,7 +363,7 @@ Windows y `git pull` en Ubuntu. El `.gitattributes` de la raíz (y el de `ops/aw
 
 Opción B (SCP de los archivos de configuración):
 ```powershell
-# [Windows PowerShell] desde C:\Projects\Ecommerce-Hibrido
+# [Windows PowerShell] desde la carpeta del proyecto
 scp -i <RUTA_CLAVE.pem> docker-compose.yml .env.example ubuntu@<IP>:/home/ubuntu/ecommerce-hibrido/
 scp -i <RUTA_CLAVE.pem> -r ops/aws ops/rabbitmq ubuntu@<IP>:/home/ubuntu/ecommerce-hibrido/ops/
 scp -i <RUTA_CLAVE.pem> docs/despliegue-aws.md ubuntu@<IP>:/home/ubuntu/ecommerce-hibrido/docs/
@@ -514,7 +515,7 @@ docker compose restart order-api     # reiniciar un servicio concreto
 
 La optimización solo afecta a `docker-compose.yml`, `ops/aws/`, `ops/rabbitmq/` y esta guía; el código Java, los
 `application.yml`, `pom.xml` y el `Dockerfile` no se tocaron. Punto de restauración de la
-configuración de la etapa 7: commit `a0b8dbb`.
+configuración de la etapa 7: commit `a0b8dbb` del repositorio anterior.
 
 | Síntoma | Ajuste (solo en `docker-compose.yml`) |
 |---|---|
@@ -525,8 +526,8 @@ configuración de la etapa 7: commit `a0b8dbb`.
 | Arranque lento / timeouts del script | `TIMEOUT_APP=420`, o subir `cpus` temporalmente |
 | No cabe en 2 GiB | t3.medium con los mismos archivos, o los límites de la etapa 7 |
 
-Recuperar la configuración de la etapa 7 (solo en una máquina con más RAM: sus límites suman
-4368M; mismos volúmenes y mismo nombre de proyecto):
+Recuperar la configuración de la etapa 7 (desde un clon del repositorio anterior; solo en una máquina con
+más RAM: sus límites suman 4368M; mismos volúmenes y mismo nombre de proyecto):
 ```bash
 git show a0b8dbb:docker-compose.yml > /tmp/docker-compose.etapa7.yml   # sin tocar el archivo actual
 bash ops/aws/detener-aws.sh
@@ -537,8 +538,8 @@ docker compose -p ecommerce-hibrido -f /tmp/docker-compose.etapa7.yml up -d --no
 proyecto, porque el archivo fuera de la carpeta del proyecto tomaría el nombre `tmp`. Publica de
 nuevo 5433, 9092, 29092 y 5672.)
 
-Revertir los archivos en Windows: `git revert <commit>` del cambio correspondiente, o
-`git checkout a0b8dbb -- docker-compose.yml` para recuperar solo el Compose de la etapa 7.
+Revertir los archivos en Windows: `git revert <commit>` del cambio correspondiente (en este repositorio), o
+`git show a0b8dbb:docker-compose.yml` en el repositorio anterior para ver el Compose de la etapa 7.
 
 ---
 
@@ -550,8 +551,9 @@ sobre el modelo resuelto por `docker compose config` (`--format json`):
 * **Iguales:** los 10 servicios y sus `container_name`, `build` (contexto, Dockerfile, `MODULO`),
   `depends_on`, redes (`ecommerce-net`), volúmenes (`postgres-data`, `analytics-datos`),
   `restart: unless-stopped`, toda la configuración de Kafka excepto el heap, usuarios,
-  `KAFKA_BOOTSTRAP`, `DB_*`, `CORS_ORIGINS`, `ARCHIVO_ORDENES`. Las variables de RabbitMQ pasaron de
-  `SPRING_RABBITMQ_*` a `RABBITMQ_HOST`/`PORT`/`USER`/`PASSWORD` (mismos valores).
+  `KAFKA_BOOTSTRAP` y `DB_*`. Cambiaron de nombre, con los mismos valores: los orígenes permitidos
+  (`CORS_ORIGINS` → `APP_ORIGENES`), la ruta de la bitácora (`ARCHIVO_ORDENES` → `ARCHIVO_BITACORA`) y las
+  variables de RabbitMQ (`SPRING_RABBITMQ_*` → `RABBITMQ_HOST`/`PORT`/`USER`/`PASSWORD`).
 * **Nuevo nivel superior:** `name: ecommerce-hibrido` (fija el nombre de proyecto: volúmenes e
   imágenes no dependen del nombre de la carpeta) y `x-logging` (json-file 10m × 3 en los 10 servicios).
 * **Microservicios:** `image: ecommerce-hibrido-<modulo>:latest`, `pull_policy: never`,

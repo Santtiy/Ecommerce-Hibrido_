@@ -1,6 +1,6 @@
 # Decisiones técnicas
 
-Registro de las decisiones tomadas al reconstruir el proyecto, sobre todo donde el código se aparta del plan.
+Registro de las decisiones técnicas del proyecto, sobre todo donde el código se aparta de lo esperado o del enunciado.
 
 | # | Decisión | Por qué |
 |---|---|---|
@@ -15,4 +15,12 @@ Registro de las decisiones tomadas al reconstruir el proyecto, sobre todo donde 
 | D-09 | El dashboard guarda como máximo **1.000 órdenes** | Evita que la memoria crezca sin límite; las más antiguas salen primero |
 | D-10 | Los valores por defecto de `application.yml` apuntan al **modo desarrollo** (Kafka `localhost:29092`, PostgreSQL `localhost:5433`) | Coinciden con `docker-compose.dev.yml` y `ops/arrancar.ps1`. En Docker, `docker-compose.yml` los sobrescribe con variables de entorno |
 | D-11 | La configuración común de Kafka y RabbitMQ vive en el módulo `common-mensajeria` y cada servicio la importa con `@Import`, sin escaneo ni autoconfiguración | Antes el `DefaultErrorHandler`, el conversor JSON y la topología de los workers estaban copiados en cada servicio. Kafka y RabbitMQ son dependencias `<optional>`: analytics, el dashboard y order-api no reciben RabbitMQ y la memoria no cambia |
-| D-12 | El campo JSON se llama `orderId` (camelCase) y no `order_id` | Es el nombre del componente del record; el ejemplo del enunciado es ilustrativo |
+| D-12 | El campo JSON se llama `orderId` (camelCase) y no `order_id` | Es el nombre del componente del record y la convención de Jackson por defecto; el ejemplo del enunciado es ilustrativo. Cambiarlo obligaría a leer los dos nombres (`@JsonAlias`), porque Kafka conserva los mensajes viejos y analytics y el dashboard los releen al arrancar. Lo que el enunciado fija (estados, `"pending"`, `{payment, stock, email}`) coincide exactamente |
+| D-13 | Los tres workers comparten `EjecutorTarea` (en `common-mensajeria`) y cada uno aporta solo su `ReglaTarea` | El consumidor, la pausa simulada, el envío a Kafka y el ack estaban copiados tres veces. Los workers siguen siendo módulos y contenedores separados (work-queue por cola) |
+| D-14 | Estados y tipos de tarea como enums: `EstadoTarea` (en `contratos/`) y `TipoTarea` (en `nombres/`), que reemplazan a `OrigenResultado` y `Etapa` | Antes cualquier status distinto de `PAYMENT_SUCCESS` cancelaba la orden, aunque viniera mal escrito. Ahora un valor desconocido falla al deserializar y un estado que llega por el topic de otra tarea se rechaza (`exigirTipo`). El texto del JSON no cambia: es el nombre del enum |
+| D-15 | `"pending"` es una constante privada de `ProgresoOrden` (dashboard), no de `common` | Solo el dashboard lo usa; `common` queda con lo que de verdad viaja por los brokers |
+| D-16 | Paquetes por capa y, dentro de `infraestructura/`, por tecnología (`kafka/`, `rabbitmq/`, `rest/`, `persistencia/`, `websocket/`); `bandejasalida/` queda entera | Encontrar el adaptador de una tecnología sin buscar. El outbox usa JPA y Kafka a la vez: separarlo lo partiría en dos. `sistemasoperativos/` queda al primer nivel de analytics para que se encuentre a la vista |
+| D-17 | Un solo esquema de variables de entorno (`KAFKA_BOOTSTRAP`, `DB_*`, `RABBITMQ_*`) y anchors de Compose (`x-microservicio`, `x-java-opts-pequeno`, `x-limites-pequeno`, `x-depende-brokers`) | Una sola fuente por dato: los yml leen las mismas variables que pasa Compose. Ningún valor efectivo (límites, `JAVA_OPTS`) cambió |
+| D-18 | Los datos de prueba (`DatosDePrueba`) y `VerificadorDominioPuro` se publican en un test-jar de `common`, con `scope test` | Se dejaron de construir los mismos contratos a mano en cinco módulos. No entra en las imágenes: la memoria no cambia |
+| D-19 | El dashboard se separa en `index.html`, `css/estilos.css` y módulos ES en `js/`, **sin** npm ni bundler | Cada archivo con una responsabilidad; Maven lo sigue empaquetando como `classpath:/static`. La URL de la API y del WebSocket se calcula con `window.location.hostname`, así que funciona con la IP de la EC2 sin recompilar |
+| D-20 | No se agregan dependencias de ejecución ni contenedores (Actuator, Flyway, Lombok, MapStruct…) | La t3.small tiene ~1,6 GiB para contenedores; el consumo medido ronda 1,3-1,4 GiB. Cada cambio se verifica con `ops\verificar-flujo.ps1 -Memoria` |
