@@ -5,8 +5,8 @@ import co.edu.proyecto.common.nombres.TipoTarea;
 /**
  * Resultado posible de una tarea: el campo {@code status} de {@link ResultadoTarea}.
  * El nombre de cada valor es el texto exacto que viaja en el JSON (Jackson serializa un enum por su nombre),
- * por eso no se deben renombrar. Un texto que no sea uno de estos valores no se puede leer: ya no hay estados
- * mal escritos que pasen como válidos.
+ * por eso no se deben renombrar. Un texto que no sea uno de estos valores no se puede leer, así que un estado
+ * mal escrito nunca pasa como válido.
  *
  * <p>Cada estado sabe de qué tipo de tarea es y si es un éxito; así todos los consumidores lo interpretan igual.
  */

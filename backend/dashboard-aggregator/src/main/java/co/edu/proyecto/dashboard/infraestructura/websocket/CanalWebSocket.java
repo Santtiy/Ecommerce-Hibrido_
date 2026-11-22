@@ -37,9 +37,13 @@ public class CanalWebSocket extends TextWebSocketHandler {
         this.json = json;
     }
 
-    /** El decorador permite enviar desde varios hilos (los consumidores de Kafka) sin corromper la sesión. */
+    /**
+     * El decorador permite enviar desde varios hilos (los consumidores de Kafka) sin corromper la sesión.
+     * Es synchronized, igual que {@link #difundir}: un cambio que llega mientras el navegador se conecta sale
+     * siempre después del tablero completo, nunca antes (si saliera antes, el tablero, más viejo, lo taparía).
+     */
     @Override
-    public void afterConnectionEstablished(WebSocketSession sesion) {
+    public synchronized void afterConnectionEstablished(WebSocketSession sesion) {
         WebSocketSession segura = new ConcurrentWebSocketSessionDecorator(sesion, TIEMPO_MAXIMO_ENVIO_MS, BUFFER_MAXIMO_BYTES);
         sesiones.put(sesion.getId(), segura);
         enviar(segura, tablero.todas());
@@ -50,7 +54,7 @@ public class CanalWebSocket extends TextWebSocketHandler {
         sesiones.remove(sesion.getId());
     }
 
-    public void difundir(String orderId, ProgresoOrden progreso) {
+    public synchronized void difundir(String orderId, ProgresoOrden progreso) {
         Map<String, ProgresoOrden> cambio = Map.of(orderId, progreso);
         sesiones.values().forEach(sesion -> enviar(sesion, cambio));
     }

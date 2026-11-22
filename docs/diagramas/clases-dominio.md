@@ -16,7 +16,6 @@ classDiagram
         -Dinero total
         ~Orden(OrdenId, String, List~ItemOrden~, Instant)
         +reconstituir(...)$ Orden
-        +agregarProducto(ItemOrden)
         +calcularTotal(EstrategiaDescuento, EstrategiaImpuesto) Dinero
         +confirmarPago()
         +cancelar()

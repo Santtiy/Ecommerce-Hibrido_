@@ -19,8 +19,8 @@ import java.util.UUID;
  * Es idempotente: un resultado repetido no cambia nada (RN-10).
  *
  * <p>Un estado que no corresponde al tipo de tarea por el que llegó (por ejemplo {@code STOCK_RESERVED} leído de
- * {@code billing_events}) se rechaza con una excepción antes de auditar: antes cualquier estado distinto de
- * {@code PAYMENT_SUCCESS} cancelaba la orden.
+ * {@code billing_events}) se rechaza con una excepción antes de auditar, así un resultado mal enrutado nunca
+ * cancela una orden.
  */
 public class RegistrarResultadoService {
 
