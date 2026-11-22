@@ -4,7 +4,7 @@ import co.edu.proyecto.common.contratos.ItemEvento;
 import co.edu.proyecto.common.contratos.ProcesarOrden;
 import co.edu.proyecto.common.contratos.ReglaTarea;
 import co.edu.proyecto.common.contratos.ResultadoTarea;
-import co.edu.proyecto.common.nombres.EstadosTarea;
+import co.edu.proyecto.common.contratos.EstadoTarea;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -22,8 +22,8 @@ public class ReglaInventario implements ReglaTarea {
         if (excedido.isPresent()) {
             String detalle = "El ítem " + excedido.get().sku() + " pide " + excedido.get().cantidad()
                     + " unidades (máximo " + MAXIMO_UNIDADES_POR_ITEM + ")";
-            return new ResultadoTarea(comando.orderId(), EstadosTarea.SIN_STOCK, detalle, ahora);
+            return new ResultadoTarea(comando.orderId(), EstadoTarea.STOCK_OUT_OF_STOCK, detalle, ahora);
         }
-        return new ResultadoTarea(comando.orderId(), EstadosTarea.STOCK_RESERVADO, "Stock reservado", ahora);
+        return new ResultadoTarea(comando.orderId(), EstadoTarea.STOCK_RESERVED, "Stock reservado", ahora);
     }
 }

@@ -11,6 +11,8 @@ import java.time.Instant;
  * <ul>
  *   <li>nunca devuelve {@code null}: siempre hay un resultado, aprobado o rechazado;</li>
  *   <li>el {@code orderId} del resultado es el del comando;</li>
+ *   <li>el {@link EstadoTarea} del resultado es del {@code TipoTarea} de su worker (order-api y el dashboard
+ *       rechazan un estado que llegue por el topic de otra tarea);</li>
  *   <li>no tiene efectos secundarios: solo evalúa, el envío lo hace quien la llama.</li>
  * </ul>
  */

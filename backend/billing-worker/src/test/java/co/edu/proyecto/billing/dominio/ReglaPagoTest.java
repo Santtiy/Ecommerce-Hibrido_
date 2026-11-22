@@ -3,7 +3,7 @@ package co.edu.proyecto.billing.dominio;
 import co.edu.proyecto.common.contratos.ItemEvento;
 import co.edu.proyecto.common.contratos.ProcesarOrden;
 import co.edu.proyecto.common.contratos.ResultadoTarea;
-import co.edu.proyecto.common.nombres.EstadosTarea;
+import co.edu.proyecto.common.contratos.EstadoTarea;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -27,14 +27,14 @@ class ReglaPagoTest {
     void unMillonExactoSeAprueba() {
         ResultadoTarea resultado = regla.evaluar(ordenPor("1000000"), AHORA);
 
-        assertThat(resultado.status()).isEqualTo(EstadosTarea.PAGO_EXITOSO);
+        assertThat(resultado.status()).isEqualTo(EstadoTarea.PAYMENT_SUCCESS);
     }
 
     @Test
     void masDeUnMillonSeRechazaYElDetalleLoExplica() {
         ResultadoTarea resultado = regla.evaluar(ordenPor("1000001"), AHORA);
 
-        assertThat(resultado.status()).isEqualTo(EstadosTarea.PAGO_FALLIDO);
+        assertThat(resultado.status()).isEqualTo(EstadoTarea.PAYMENT_FAILED);
         assertThat(resultado.detalle()).contains("1000000");
     }
 }

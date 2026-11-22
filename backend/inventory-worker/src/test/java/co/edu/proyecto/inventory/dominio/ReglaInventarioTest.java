@@ -3,7 +3,7 @@ package co.edu.proyecto.inventory.dominio;
 import co.edu.proyecto.common.contratos.ItemEvento;
 import co.edu.proyecto.common.contratos.ProcesarOrden;
 import co.edu.proyecto.common.contratos.ResultadoTarea;
-import co.edu.proyecto.common.nombres.EstadosTarea;
+import co.edu.proyecto.common.contratos.EstadoTarea;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -31,14 +31,14 @@ class ReglaInventarioTest {
     void diezUnidadesSeReservan() {
         ResultadoTarea resultado = regla.evaluar(ordenCon(10), AHORA);
 
-        assertThat(resultado.status()).isEqualTo(EstadosTarea.STOCK_RESERVADO);
+        assertThat(resultado.status()).isEqualTo(EstadoTarea.STOCK_RESERVED);
     }
 
     @Test
     void unItemExcedidoAunqueNoSeaElPrimeroDejaSinStock() {
         ResultadoTarea resultado = regla.evaluar(ordenCon(1, 50), AHORA);
 
-        assertThat(resultado.status()).isEqualTo(EstadosTarea.SIN_STOCK);
+        assertThat(resultado.status()).isEqualTo(EstadoTarea.STOCK_OUT_OF_STOCK);
         assertThat(resultado.detalle()).contains("SKU-1").contains("50");
     }
 }

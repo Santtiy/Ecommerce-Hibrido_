@@ -1,8 +1,7 @@
 package co.edu.proyecto.billing.configuracion;
 
 import co.edu.proyecto.common.contratos.ReglaTarea;
-import co.edu.proyecto.common.nombres.Colas;
-import co.edu.proyecto.common.nombres.Topicos;
+import co.edu.proyecto.common.nombres.TipoTarea;
 import co.edu.proyecto.mensajeria.rabbitmq.ConfiguracionRabbitBase;
 import co.edu.proyecto.mensajeria.rabbitmq.TopologiaWorker;
 import co.edu.proyecto.mensajeria.tareas.EjecutorTarea;
@@ -31,12 +30,12 @@ public class ConfiguracionMensajeria {
     /** Topic donde este worker publica sus resultados. */
     @Bean
     public NewTopic topicoResultados() {
-        return TopicBuilder.name(Topicos.EVENTOS_PAGO).partitions(1).replicas(1).build();
+        return TopicBuilder.name(TipoTarea.PAGO.topico()).partitions(1).replicas(1).build();
     }
 
     @Bean
     public Queue cola() {
-        return TopologiaWorker.colaDeTrabajo(Colas.PAGOS);
+        return TopologiaWorker.colaDeTrabajo(TipoTarea.PAGO.cola());
     }
 
     @Bean
@@ -50,6 +49,6 @@ public class ConfiguracionMensajeria {
      */
     @Bean
     public EjecutorTarea ejecutorTarea(ReglaTarea regla, KafkaTemplate<String, String> kafka, ObjectMapper json) {
-        return new EjecutorTarea(regla, Topicos.EVENTOS_PAGO, kafka, json, Clock.systemUTC());
+        return new EjecutorTarea(regla, TipoTarea.PAGO.topico(), kafka, json, Clock.systemUTC());
     }
 }

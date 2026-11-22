@@ -2,8 +2,8 @@ package co.edu.proyecto.dashboard.infraestructura;
 
 import co.edu.proyecto.common.contratos.ResultadoTarea;
 import co.edu.proyecto.common.nombres.GruposConsumidores;
+import co.edu.proyecto.common.nombres.TipoTarea;
 import co.edu.proyecto.common.nombres.Topicos;
-import co.edu.proyecto.dashboard.dominio.Etapa;
 import co.edu.proyecto.dashboard.dominio.ProgresoOrden;
 import co.edu.proyecto.dashboard.dominio.TableroOrdenes;
 import co.edu.proyecto.mensajeria.kafka.ConsumidorQueReleeTodo;
@@ -28,21 +28,21 @@ public class ConsumidorResultados extends ConsumidorQueReleeTodo {
 
     @KafkaListener(topics = Topicos.EVENTOS_PAGO, groupId = GruposConsumidores.DASHBOARD)
     public void alRecibirPago(ResultadoTarea resultado) {
-        aplicar(Etapa.PAGO, resultado);
+        aplicar(TipoTarea.PAGO, resultado);
     }
 
     @KafkaListener(topics = Topicos.EVENTOS_INVENTARIO, groupId = GruposConsumidores.DASHBOARD)
     public void alRecibirInventario(ResultadoTarea resultado) {
-        aplicar(Etapa.STOCK, resultado);
+        aplicar(TipoTarea.INVENTARIO, resultado);
     }
 
     @KafkaListener(topics = Topicos.EVENTOS_NOTIFICACION, groupId = GruposConsumidores.DASHBOARD)
     public void alRecibirNotificacion(ResultadoTarea resultado) {
-        aplicar(Etapa.CORREO, resultado);
+        aplicar(TipoTarea.NOTIFICACION, resultado);
     }
 
-    private void aplicar(Etapa etapa, ResultadoTarea resultado) {
-        ProgresoOrden progreso = tablero.aplicar(resultado.orderId(), etapa, resultado.status());
+    private void aplicar(TipoTarea tipo, ResultadoTarea resultado) {
+        ProgresoOrden progreso = tablero.aplicar(resultado.orderId(), tipo, resultado.status());
         canal.difundir(resultado.orderId(), progreso);
     }
 }

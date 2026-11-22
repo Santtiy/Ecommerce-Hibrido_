@@ -4,7 +4,7 @@ import co.edu.proyecto.common.contratos.ItemEvento;
 import co.edu.proyecto.common.contratos.ProcesarOrden;
 import co.edu.proyecto.common.contratos.ReglaTarea;
 import co.edu.proyecto.common.contratos.ResultadoTarea;
-import co.edu.proyecto.common.nombres.EstadosTarea;
+import co.edu.proyecto.common.contratos.EstadoTarea;
 import co.edu.proyecto.common.nombres.Topicos;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -42,7 +42,7 @@ class EjecutorTareaTest {
 
     /** Regla mínima que cumple el contrato de ReglaTarea: mismo orderId y nunca null. */
     private final ReglaTarea regla = (comando, ahora) ->
-            new ResultadoTarea(comando.orderId(), EstadosTarea.PAGO_EXITOSO, "Pago aprobado", ahora);
+            new ResultadoTarea(comando.orderId(), EstadoTarea.PAYMENT_SUCCESS, "Pago aprobado", ahora);
 
     @Mock
     private KafkaTemplate<String, String> kafka;
@@ -61,7 +61,7 @@ class EjecutorTareaTest {
         // Arrange
         when(kafka.send(anyString(), anyString(), anyString())).thenReturn(CompletableFuture.completedFuture(null));
         String esperado = json.writeValueAsString(
-                new ResultadoTarea("o-1", EstadosTarea.PAGO_EXITOSO, "Pago aprobado", AHORA));
+                new ResultadoTarea("o-1", EstadoTarea.PAYMENT_SUCCESS, "Pago aprobado", AHORA));
 
         // Act
         ejecutor().ejecutar(comando());
