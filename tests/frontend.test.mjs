@@ -55,10 +55,11 @@ test('recursos, imports y exportaciones son válidos; el frontend cabe en 750 Ki
   }
 });
 
-test('subtotal, descuento e IVA conservan el umbral estricto y los centavos', () => {
+test('subtotal, descuento e IVA aplican el umbral inclusivo y conservan los centavos', () => {
   assert.deepEqual(estimar([]), { subtotal: 0, descuento: 0, iva: 0, total: 0 });
   assert.deepEqual(estimar([{ cantidad: 1, precioUnitario: 150000 }]), { subtotal: 150000, descuento: 15000, iva: 25650, total: 160650 });
-  assert.equal(estimar([{ cantidad: 5, precioUnitario: 20000 }]).descuento, 0);
+  assert.deepEqual(estimar([{ cantidad: 5, precioUnitario: 20000 }]), { subtotal: 100000, descuento: 10000, iva: 17100, total: 107100 });
+  assert.equal(estimar([{ cantidad: 1, precioUnitario: 99999.99 }]).descuento, 0);
   assert.equal(estimar([{ cantidad: 1, precioUnitario: 100000.01 }]).descuento, 10000);
   assert.equal(estimar([{ cantidad: 3, precioUnitario: 59900 }]).total, 192458.7);
   const items = [{ nombre: 'Libro', cantidad: 1 }, { nombre: 'USB', cantidad: 11 }];
@@ -69,9 +70,13 @@ test('subtotal, descuento e IVA conservan el umbral estricto y los centavos', ()
 
 test('el resumen conserva promoción, envío gratis y avisos de pago y stock', () => {
   const limite = crearResumenPedido([{ cantidad: 1, precioUnitario: 100000 }]);
-  assert.match(limite.textContent, /Supera/);
-  assert.ok(limite.querySelector('progress'));
-  assert.equal(limite.querySelector('.descuento'), null);
+  assert.match(limite.textContent, /Ahorras/);
+  assert.equal(limite.querySelector('progress'), null);
+  assert.ok(limite.querySelector('.descuento'));
+  const debajo = crearResumenPedido([{ cantidad: 1, precioUnitario: 99999.99 }]);
+  assert.match(debajo.textContent, /pendiente/);
+  assert.ok(debajo.querySelector('progress'));
+  assert.equal(debajo.querySelector('.descuento'), null);
   const activo = crearResumenPedido([{ cantidad: 1, precioUnitario: 150000 }]);
   assert.match(activo.textContent, /Ahorras/);
   assert.match(activo.textContent, /Gratis/);
@@ -98,7 +103,7 @@ test('el pedido de la captura no activa el descuento por superar el umbral solo 
 test('el carrito conserva cantidades, límites y el contrato de los ítems', () => {
   carrito.vaciarCarrito();
   carrito.ponerCantidad('USB-001', 5);
-  assert.equal(estimar(carrito.itemsDeLaOrden()).descuento, 0);
+  assert.equal(estimar(carrito.itemsDeLaOrden()).descuento, 10000);
   carrito.sumarCantidad('USB-001', 1);
   assert.equal(estimar(carrito.itemsDeLaOrden()).descuento, 12000);
   assert.deepEqual(carrito.itemsDeLaOrden()[0], { sku: 'USB-001', nombre: 'Memoria USB 4 GB', cantidad: 6, precioUnitario: 20000 });

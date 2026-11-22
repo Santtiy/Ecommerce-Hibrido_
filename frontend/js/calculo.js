@@ -9,7 +9,7 @@ const porcentaje = (monto, pct) => Math.round(monto * pct / 100);
 /** Devuelve { subtotal, descuento, iva, total } en pesos. Los valores vacíos o no numéricos cuentan como 0. */
 export function estimar(items) {
   const subtotal = items.reduce((suma, it) => suma + centavos((it.cantidad ?? 0) * (it.precioUnitario ?? 0)), 0);
-  const descuento = subtotal > centavos(REGLAS.umbralDescuento) ? porcentaje(subtotal, REGLAS.porcentajeDescuento) : 0;
+  const descuento = subtotal >= centavos(REGLAS.umbralDescuento) ? porcentaje(subtotal, REGLAS.porcentajeDescuento) : 0;
   const base = subtotal - descuento;
   const iva = porcentaje(base, REGLAS.porcentajeIva);
   return { subtotal: subtotal / 100, descuento: descuento / 100, iva: iva / 100, total: (base + iva) / 100 };

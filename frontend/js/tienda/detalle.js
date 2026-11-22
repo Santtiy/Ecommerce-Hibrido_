@@ -34,7 +34,7 @@ function condiciones(producto) {
   const lista = crear('ul', 'condiciones');
   lista.append(
     crear('li', '', 'Envío gratis.'),
-    crear('li', '', `${REGLAS.porcentajeDescuento} % de descuento si tu compra supera ${formatoPesos.format(REGLAS.umbralDescuento)} (RN-14).`),
+    crear('li', '', `${REGLAS.porcentajeDescuento} % de descuento desde ${formatoPesos.format(REGLAS.umbralDescuento)} de subtotal, antes de IVA (RN-14).`),
     crear('li', '', `Máximo ${REGLAS.maximoUnidades} unidades por producto; con más no habrá stock (RN-12).`));
   if (estimar([{ cantidad: 1, precioUnitario: producto.precio }]).total > REGLAS.limitePago) {
     lista.append(crear('li', 'alerta',

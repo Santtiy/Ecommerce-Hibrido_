@@ -28,6 +28,18 @@ class CalculoTotalTest {
     }
 
     @Test
+    void cienMilExactosQuedanEnNoventaMilAntesDelIva() {
+        // Arrange
+        Orden orden = ordenDe("100000");
+
+        // Act
+        Dinero total = orden.calcularTotal(new DescuentoPorMonto(), new IvaColombia());
+
+        // Assert
+        assertThat(total).isEqualTo(Dinero.de("107100", "COP"));
+    }
+
+    @Test
     void porDebajoDelUmbralSoloSeAplicaElIva() {
         // Arrange
         Orden orden = ordenDe("90000");

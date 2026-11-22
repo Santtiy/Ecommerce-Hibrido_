@@ -36,7 +36,7 @@ function beneficio({ subtotal, descuento }) {
   titulo.append(icono(activo ? 'hecho' : 'regalo'), crear('strong', '',
     activo ? `¡Tu ${REGLAS.porcentajeDescuento} % ya está activo!` : `Descuento del ${REGLAS.porcentajeDescuento} % pendiente`));
 
-  let texto = `Supera ${formatoPesos.format(REGLAS.umbralDescuento)} de subtotal, antes de IVA, para activar el ${REGLAS.porcentajeDescuento} % de descuento.`;
+  let texto = `Recibe el ${REGLAS.porcentajeDescuento} % de descuento desde ${formatoPesos.format(REGLAS.umbralDescuento)} de subtotal, antes de IVA.`;
   if (activo) {
     texto = `Ahorras ${formatoPesos.format(descuento)} en productos. El envío también es gratis.`;
   }
@@ -45,7 +45,7 @@ function beneficio({ subtotal, descuento }) {
     const progreso = crear('progress');
     progreso.max = REGLAS.umbralDescuento;
     progreso.value = subtotal;
-    progreso.setAttribute('aria-label', 'Subtotal para superar el umbral del descuento');
+    progreso.setAttribute('aria-label', 'Subtotal para alcanzar el descuento');
     caja.append(progreso, crear('small', '', `Subtotal actual: ${formatoPesos.format(subtotal)} · antes de IVA`));
   }
   return caja;
