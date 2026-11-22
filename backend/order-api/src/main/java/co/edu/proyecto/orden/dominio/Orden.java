@@ -44,14 +44,14 @@ public class Orden {
         return orden;
     }
 
-    /** RN-04: total = suma de subtotales, menos el descuento, más el impuesto (en ese orden). RN-15: solo en CREADA. */
+    /** RN-04: incluye el impuesto en el precio y aplica el descuento sobre ese precio final. RN-15: solo en CREADA. */
     public Dinero calcularTotal(EstrategiaDescuento descuento, EstrategiaImpuesto impuesto) {
         exigirEstado(EstadoOrden.CREADA, "calcular el total");
         if (descuento == null || impuesto == null) {
             throw new OrdenInvalidaException("Las estrategias de descuento e impuesto son obligatorias");
         }
-        Dinero conDescuento = descuento.aplicar(subtotal());
-        this.total = impuesto.aplicar(conDescuento);
+        Dinero conImpuesto = impuesto.aplicar(subtotal());
+        this.total = descuento.aplicar(conImpuesto);
         return total;
     }
 

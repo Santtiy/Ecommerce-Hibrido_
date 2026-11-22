@@ -10,7 +10,7 @@ class DescuentoPorMontoTest {
     private final DescuentoPorMonto descuento = new DescuentoPorMonto();
 
     @Test
-    void cienMilExactosNoTienenDescuento() {
+    void cienMilExactosTienenDiezMilDeDescuento() {
         // Arrange
         Dinero subtotal = Dinero.de("100000", "COP");
 
@@ -18,7 +18,19 @@ class DescuentoPorMontoTest {
         Dinero resultado = descuento.aplicar(subtotal);
 
         // Assert
-        assertThat(resultado).isEqualTo(Dinero.de("100000", "COP"));
+        assertThat(resultado).isEqualTo(Dinero.de("90000", "COP"));
+    }
+
+    @Test
+    void porDebajoDeCienMilNoSeAplicaDescuento() {
+        // Arrange
+        Dinero subtotal = Dinero.de("99999.99", "COP");
+
+        // Act
+        Dinero resultado = descuento.aplicar(subtotal);
+
+        // Assert
+        assertThat(resultado).isEqualTo(subtotal);
     }
 
     @Test

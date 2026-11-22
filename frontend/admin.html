@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Panel de administración · Ecommerce Híbrido</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script type="module" src="js/admin/app.js"></script>
+</head>
+<body class="admin">
+
+<header class="cabecera">
+  <div class="cabecera-interior">
+    <div>
+      <h1>Panel de administración</h1>
+      <p class="producto">Ecommerce Híbrido</p>
+    </div>
+    <div class="cabecera-derecha">
+      <p id="conexion" class="conexion" role="status">Conectando con el dashboard…</p>
+      <a class="enlace-tienda" href="./" target="tienda">Abrir la tienda</a>
+    </div>
+  </div>
+</header>
+
+<main class="columnas">
+  <section class="panel panel-ordenes" aria-labelledby="titulo-ordenes">
+    <div class="cabecera-panel">
+      <h2 id="titulo-ordenes">Órdenes</h2>
+      <p id="mostrando" class="mostrando" aria-live="polite"></p>
+    </div>
+    <div class="filtros" role="group" aria-label="Filtrar por resultado">
+      <button type="button" data-filtro="todas" aria-pressed="true">
+        Todas<small><b id="cuenta-todas">0</b> en el tablero</small>
+      </button>
+      <button type="button" data-filtro="completada" class="completada" aria-pressed="false">
+        Completadas<small><b id="cuenta-completada">0</b> con todo correcto</small>
+      </button>
+      <button type="button" data-filtro="fallo" class="fallo" aria-pressed="false">
+        Con fallo<small><b id="cuenta-fallo">0</b> <span id="detalle-fallo">(0 de pago, 0 de stock)</span></small>
+      </button>
+      <button type="button" data-filtro="proceso" class="proceso" aria-pressed="false">
+        En proceso<small><b id="cuenta-proceso">0</b> esperando a los workers</small>
+      </button>
+    </div>
+    <input id="buscar" type="search" placeholder="Buscar por orderId o cliente" aria-label="Buscar por orderId o cliente" autocomplete="off">
+    <div class="tabla-envoltura">
+      <table id="ordenes">
+        <thead>
+          <tr><th>Orden</th><th>Pago</th><th>Stock</th><th>Correo</th><th>Resultado</th></tr>
+        </thead>
+        <tbody id="filas"></tbody>
+      </table>
+      <p id="sin-ordenes" class="vacio">Todavía no hay órdenes. Haz una compra en la tienda o usa un escenario de la exposición.</p>
+    </div>
+    <p class="leyenda">
+      Elige una orden para ver su recorrido. Los tres workers reciben cada orden a la vez por el fanout
+      <code>order_tasks</code>, así que pago, stock y correo pueden terminar en cualquier orden. El cliente y el total
+      solo se conocen en las órdenes hechas desde la tienda de este navegador.
+    </p>
+  </section>
+
+  <div class="lateral">
+    <section id="recorrido" class="panel recorrido-panel" aria-labelledby="titulo-recorrido">
+      <h2 id="titulo-recorrido">Recorrido de la orden</h2>
+      <div id="contenido-recorrido" aria-live="polite"></div>
+    </section>
+    <section id="peticion" class="panel peticion" aria-labelledby="titulo-peticion">
+      <h2 id="titulo-peticion">Última petición a order-api</h2>
+      <div id="contenido-peticion" aria-live="polite"></div>
+    </section>
+  </div>
+</main>
+
+</body>
+</html>

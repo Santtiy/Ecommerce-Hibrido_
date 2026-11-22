@@ -1,0 +1,153 @@
+/* Panel de administración: banda de cabecera, órdenes en vivo (filtros, búsqueda y tabla) y, al lado, el recorrido
+   de la orden elegida y la última petición a order-api. Usa los tokens y botones de base.css. */
+
+/* ---------- Cabecera: banda sólida con el mismo fondo de puntos que la página ---------- */
+.cabecera {
+  background-color: var(--banda); color: var(--sobre-banda);
+  background-image: radial-gradient(var(--punto-banda) 1px, transparent 1.3px);
+  background-size: 22px 22px;
+}
+.cabecera-interior, .columnas { max-width: 1440px; margin: 0 auto; padding-inline: 24px; }
+.cabecera-interior {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 24px;
+  padding-top: 30px; padding-bottom: 26px;
+}
+.cabecera h1 { font-size: 2.25rem; }
+.producto { margin: 6px 0 0; font-size: 1rem; color: var(--sobre-banda-2); }
+.cabecera-derecha { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; }
+.conexion { margin: 0; font-size: .875rem; color: var(--sobre-banda-2); }
+.conexion.desconectado { color: var(--fallo-sobre-banda); font-weight: 600; }
+.enlace-tienda { font-size: .875rem; font-weight: 650; color: var(--sobre-banda); }
+
+/* ---------- Columnas: órdenes a la izquierda, recorrido y petición a la derecha ---------- */
+.columnas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 27rem); gap: 20px; align-items: start; padding-top: 24px; padding-bottom: 56px; }
+.lateral { display: grid; gap: 20px; min-width: 0; }
+.cabecera-panel { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; margin-bottom: 14px; }
+.cabecera-panel h2 { margin: 0; }
+.mostrando { margin: 0; font-size: .8125rem; color: var(--tinta-2); }
+
+/* ---------- Filtros: el mismo vocabulario que los botones de ejemplo ---------- */
+.filtros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.filtros button {
+  display: grid; gap: 2px; align-content: start; text-align: left; padding: 10px 12px;
+  font-size: .9375rem; font-weight: 700; background: var(--papel-2); border: 1px solid var(--linea); border-radius: 4px;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.filtros button:hover { border-color: var(--tinta); background: var(--tarjeta); }
+.filtros small { font-size: .75rem; font-weight: 400; color: var(--tinta-2); }
+.filtros b { font-size: .9375rem; font-weight: 800; color: var(--tinta); }
+.filtros .completada b { color: var(--ok-texto); }
+.filtros .fallo b { color: var(--fallo-texto); }
+.filtros .proceso b { color: var(--pend-texto); }
+.filtros button[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--sobre-tinta); }
+.filtros button[aria-pressed="true"] small { color: var(--sobre-tinta-2); }
+.filtros button[aria-pressed="true"] b { color: var(--sobre-tinta); }
+#buscar {
+  margin-bottom: 12px; padding-left: 34px;
+  background: var(--campo) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23857f72' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='m11 11 3.5 3.5'/%3E%3C/svg%3E") no-repeat 11px 50%;
+}
+
+/* ---------- Tabla de órdenes ---------- */
+.tabla-envoltura { max-height: min(70vh, 820px); overflow: auto; border: 1px solid var(--linea); border-radius: 4px; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .875rem; }
+th {
+  position: sticky; top: 0; z-index: 1; padding: 10px; text-align: left; white-space: nowrap;
+  background: var(--banda); color: var(--sobre-banda); font-size: .8125rem; font-weight: 650;
+}
+td { padding: 9px 10px; border-bottom: 1px solid var(--linea); vertical-align: middle; }
+tbody tr { cursor: pointer; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background-color: var(--hover); }
+tbody tr[aria-selected="true"] td { background-color: var(--senal-suave); }
+.col-orden .id {
+  display: block; padding: 0; background: none; border: 0; text-align: left;
+  font: 600 .8125rem/1.35 var(--mono); text-decoration: underline; text-decoration-color: var(--linea-fuerte); text-underline-offset: 3px;
+}
+.col-orden .id:hover { text-decoration-color: currentColor; }
+.col-orden .extra { display: block; max-width: 13rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8125rem; color: var(--tinta-2); }
+.col-orden .extra:empty { display: none; }
+.col-resultado { white-space: nowrap; }
+/* El resultado es lo primero que se busca en cada fila: etiqueta de color sólido cuando ya terminó. */
+.resultado { display: inline-block; padding: 3px 9px; border-radius: 4px; font-size: .8125rem; font-weight: 700; }
+.resultado.completada { background: var(--ok); color: var(--sobre-estado); }
+.resultado.fallo { background: var(--fallo); color: var(--sobre-estado); }
+.resultado.proceso { background: var(--pend-suave); color: var(--pend-texto); }
+.hora { display: block; margin-top: 3px; font-size: .75rem; color: var(--tinta-3); }
+/* Un cambio de estado se marca un instante en la fila: es la única animación del panel. */
+#ordenes tbody td { transition: background-color 1.2s ease-out; }
+#ordenes tbody tr.destacada td { background-color: var(--destacado); transition: none; }
+.leyenda { margin: 12px 0 0; font-size: .8125rem; color: var(--tinta-3); max-width: 80ch; }
+
+/* ---------- Recorrido de la orden ---------- */
+.id-completo { word-break: break-all; }
+.recorrido { list-style: none; margin: 0; padding: 0; display: grid; }
+.salto { position: relative; display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; padding-bottom: 14px; }
+/* La línea que une los saltos: el camino que siguió la orden. */
+.salto:not(:last-child)::after {
+  content: ""; position: absolute; left: 10px; top: 24px; bottom: 2px; width: 2px; background: var(--linea);
+}
+.salto.hecho:not(:last-child)::after { background: var(--ok); }
+.marca {
+  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--linea-fuerte); background: var(--tarjeta); color: var(--sobre-estado);
+}
+.marca .icono { width: 13px; height: 13px; stroke-width: 3; }
+.hecho > .marca, .ok > .marca { background: var(--ok); border-color: var(--ok); }
+.fallo > .marca { background: var(--fallo); border-color: var(--fallo); }
+.servicio { margin: 0; font-weight: 700; line-height: 1.35; }
+.canal { display: inline; margin: 0; font-weight: 400; color: var(--tinta-2); }
+.que { margin: 2px 0 0; font-size: .8125rem; color: var(--tinta-2); }
+.ramas { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.rama { padding: 8px 10px; border: 1px solid var(--linea); border-radius: 4px; background: var(--papel-2); }
+.rama.ok { border-color: var(--ok); }
+.rama.fallo { border-color: var(--fallo); }
+.rama .servicio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; font-size: .875rem; }
+
+/* ---------- Última petición a order-api ---------- */
+.peticion.ok { border-color: var(--ok); }
+.peticion.fallo { border-color: var(--fallo); }
+/* El código HTTP va en una franja tintada con el color del resultado, de borde a borde del panel. */
+.estado-http {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px;
+  margin: -2px -22px 10px; padding: 12px 22px; background: var(--neutro-suave);
+}
+.estado-http .numero { font-size: 2.25rem; line-height: 1; font-weight: 800; letter-spacing: -.03em; }
+.estado-http .texto { font-size: 1rem; font-weight: 600; color: var(--tinta-2); }
+.peticion.ok .estado-http { background: var(--ok-suave); }
+.peticion.fallo .estado-http { background: var(--fallo-suave); }
+.peticion.ok .numero, .peticion.ok .estado-http .texto { color: var(--ok-texto); }
+.peticion.fallo .numero, .peticion.fallo .estado-http .texto { color: var(--fallo-texto); }
+.datos { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: .875rem; }
+.datos dt { color: var(--tinta-2); }
+.datos dd { margin: 0; min-width: 0; }
+.datos strong { font-weight: 650; }
+.enlace { padding: 0; background: none; border: 0; font: 600 .8125rem var(--mono); text-decoration: underline; text-underline-offset: 3px; }
+.mensaje { margin: 6px 0; font-weight: 650; }
+
+/* ---------- Pantallas medianas y móviles ---------- */
+@media (max-width: 1240px) {
+  .columnas { grid-template-columns: minmax(0, 1fr); }
+  .lateral { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+
+@media (max-width: 760px) {
+  .cabecera-interior, .columnas { padding-inline: 16px; }
+  .cabecera-interior { padding-top: 22px; padding-bottom: 20px; }
+  .cabecera h1 { font-size: 1.75rem; }
+  .panel { padding: 16px; }
+  .estado-http { margin-inline: -16px; padding-inline: 16px; }
+  .lateral { grid-template-columns: minmax(0, 1fr); }
+  .filtros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tabla-envoltura { max-height: none; }
+
+  /* La tabla se vuelve una lista: la orden arriba, una línea por etapa y el resultado con su hora al final. */
+  #ordenes thead { display: none; }
+  #ordenes, #ordenes tbody { display: block; }
+  #ordenes tbody tr { display: grid; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--linea); }
+  #ordenes tbody td { display: block; padding: 0; border: 0; background: none !important; }
+  #ordenes tbody tr[aria-selected="true"] { background: var(--senal-suave); }
+  #ordenes .col-etapa { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  #ordenes .col-etapa::before { content: attr(data-etiqueta); font-size: .8125rem; color: var(--tinta-2); }
+  #ordenes .col-resultado { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding-top: 4px; }
+  .estado { white-space: normal; word-break: break-all; }
+}

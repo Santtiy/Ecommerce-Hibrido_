@@ -3,80 +3,190 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ecommerce Híbrido · Dashboard</title>
+  <meta name="color-scheme" content="light dark">
+  <title>Tienda · Ecommerce Híbrido</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="css/estilos.css">
-  <script type="module" src="js/app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/tienda.css">
+  <script type="module" src="js/tienda/app.js"></script>
 </head>
-<body>
-<main>
-  <header>
-    <h1>Ecommerce Híbrido — Dashboard de órdenes</h1>
-    <div id="conexion" class="conexion" role="status">
-      <span class="punto"></span><span id="texto-conexion">desconectado</span>
-    </div>
-  </header>
+<body class="tienda">
 
-  <section class="tarjeta">
-    <h2>Ejemplos rápidos</h2>
-    <div class="ejemplos">
-      <button type="button" data-ejemplo="normal">Caso normal<small>Libro ×1 a 150.000 → todo exitoso</small></button>
-      <button type="button" data-ejemplo="pago">Pago rechazado RN-11<small>Televisor ×1 a 1.500.000 → PAYMENT_FAILED</small></button>
-      <button type="button" data-ejemplo="stock">Sin stock RN-12<small>Memoria USB ×15 a 20.000 → STOCK_OUT_OF_STOCK</small></button>
-      <button type="button" data-ejemplo="varios">Varios ítems RN-12<small>Libro ×1 + USB ×50 → STOCK_OUT_OF_STOCK</small></button>
-      <button type="button" data-ejemplo="precio-cero" class="invalida">Precio cero<small>Envía precio 0 → 400</small></button>
-      <button type="button" data-ejemplo="sin-items" class="invalida">Sin items<small>Envía una lista vacía → 400</small></button>
-      <button type="button" data-ejemplo="cantidad-cero" class="invalida">Cantidad cero<small>Envía cantidad 0 → 400</small></button>
-    </div>
-  </section>
+<a class="saltar-contenido" href="#titulo-productos">Ir al contenido</a>
 
-  <section class="tarjeta">
-    <h2>Nueva orden</h2>
-    <form id="formulario" novalidate>
-      <label for="cliente">Cliente</label>
-      <input id="cliente" type="text" autocomplete="off" placeholder="Nombre del cliente">
-
-      <div class="tabla-envoltura separada">
-        <table id="items">
-          <thead><tr><th>SKU</th><th>Nombre</th><th class="col-num">Cantidad</th><th class="col-num">Precio unitario</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="fila-botones">
-        <button type="button" id="anadir-fila">+ Añadir ítem</button>
-      </div>
-
-      <dl class="totales">
-        <dt>Subtotal</dt><dd id="subtotal">$ 0</dd>
-        <dt>Descuento aplicado (10 % si supera 100.000)</dt><dd id="descuento">$ 0</dd>
-        <dt class="total">Total con IVA (19 %)</dt><dd id="total" class="total">$ 0</dd>
-      </dl>
-      <p class="nota">Estimación del navegador. El total real lo calcula el servidor.</p>
-
-      <div class="fila-botones">
-        <button type="submit" id="enviar" class="primario">Enviar orden</button>
-      </div>
+<header class="encabezado">
+  <div class="interior encabezado-fila">
+    <a class="marca" href="./">Ecommerce Híbrido</a>
+    <form id="form-buscar" class="buscador" role="search">
+      <label for="buscar" class="solo-lector">Buscar productos</label>
+      <input id="buscar" type="search" placeholder="Buscar productos" autocomplete="off">
     </form>
-  </section>
-
-  <section id="respuesta" class="tarjeta" aria-live="polite">
-    <h2>Respuesta de order-api</h2>
-    <div id="respuesta-contenido" class="vacio">Aún no se ha enviado ninguna orden.</div>
-  </section>
-
-  <section class="tarjeta">
-    <div class="cabecera-tabla">
-      <h2>Órdenes en vivo</h2>
-      <div class="contador">Órdenes recibidas: <strong id="contador">0</strong></div>
+    <div class="acciones-encabezado">
+      <button type="button" id="ver-favoritos" class="boton-encabezado" aria-pressed="false" aria-label="Ver favoritos">
+        <span class="etiqueta-boton">Favoritos</span> <span id="cuenta-favoritos" class="contador">0</span>
+      </button>
+      <button type="button" id="ir-carrito" class="boton-encabezado boton-carrito" aria-label="Ver carrito">
+        <span class="etiqueta-boton">Carrito</span> <span id="resumen-encabezado" class="resumen-encabezado">Vacío</span>
+      </button>
     </div>
-    <div class="tabla-envoltura">
-      <table id="ordenes">
-        <thead><tr><th>Orden</th><th>Pago</th><th>Stock</th><th>Correo</th><th>Actualizada</th></tr></thead>
-        <tbody id="filas"><tr id="sin-ordenes"><td colspan="5" class="vacio">Aún no llegan órdenes.</td></tr></tbody>
-      </table>
+  </div>
+  <nav class="pasos" aria-label="Pasos de la compra">
+    <ol class="interior">
+      <li><button type="button" data-paso="productos"><span class="numero">1</span>Productos</button></li>
+      <li><button type="button" data-paso="confirmar"><span class="numero">2</span>Confirmar</button></li>
+      <li><button type="button" data-paso="seguimiento"><span class="numero">3</span>Seguimiento</button></li>
+    </ol>
+  </nav>
+</header>
+
+<main class="interior">
+  <section id="paso-productos" class="paso" aria-labelledby="titulo-productos">
+    <div id="promociones" class="promociones" aria-label="Beneficios de tu compra">
+      <section class="promocion-descuento" aria-labelledby="titulo-promocion">
+        <div class="promocion-texto">
+          <p class="antetitulo">Un extra para tu próxima compra</p>
+          <h2 id="titulo-promocion">Más de lo que te gusta.<br>Por un poco menos.</h2>
+          <p>En compras desde <strong>$ 100.000</strong>, IVA incluido. Tu descuento se aplica automáticamente.</p>
+          <button type="button" id="explorar-productos" class="boton-primario">Explorar productos</button>
+        </div>
+        <div class="sello-descuento"><strong>10<span>%</span></strong><span>de descuento</span><small>Sin códigos ni cupones</small></div>
+      </section>
+      <section class="promocion-envio" aria-labelledby="titulo-envio">
+        <span class="icono-beneficio" data-icono="envio"></span>
+        <p class="antetitulo">De la tienda a tus manos</p>
+        <h2 id="titulo-envio">Tu envío,<br> siempre gratis.</h2>
+        <p>En todos los pedidos.<br> Sin compra mínima.</p>
+        <a href="#ayuda-tienda">Conoce los beneficios</a>
+      </section>
+    </div>
+    <div class="titulo-catalogo">
+      <div>
+        <p class="antetitulo">Tecnología, lectura y algo más</p>
+        <h1 id="titulo-productos" tabindex="-1">Encuentra tu próximo favorito</h1>
+      </div>
+      <p class="nota-catalogo">Precios en COP, IVA 19 % incluido <span>El impuesto ya está en cada precio</span></p>
+    </div>
+    <div class="paso-productos">
+      <div class="columna-catalogo">
+        <div id="vista-catalogo">
+          <div class="barra-catalogo">
+            <div id="categorias" class="categorias" role="group" aria-label="Categorías"></div>
+            <div class="orden">
+              <label for="orden">Ordenar por</label>
+              <select id="orden">
+                <option value="relevancia">Destacados</option>
+                <option value="precio-asc">Precio: menor a mayor</option>
+                <option value="precio-desc">Precio: mayor a menor</option>
+                <option value="nombre">Nombre</option>
+              </select>
+            </div>
+          </div>
+          <div class="resumen-catalogo">
+            <p id="resultado-busqueda" class="resultado-busqueda" role="status"></p>
+            <button type="button" id="limpiar-filtros" class="enlace-boton" hidden>Limpiar filtros</button>
+          </div>
+          <div id="vitrina" class="vitrina"></div>
+          <div id="sin-resultados" class="sin-resultados" hidden>
+            <p id="texto-sin-resultados"></p>
+            <button type="button" id="ver-todo" class="boton-secundario">Ver todos los productos</button>
+          </div>
+        </div>
+        <div id="detalle-producto" class="detalle-producto" hidden></div>
+      </div>
+      <aside class="panel carrito" aria-labelledby="titulo-carrito">
+        <div class="titulo-carrito"><h2 id="titulo-carrito" tabindex="-1">Tu carrito</h2><span id="unidades-carrito" class="contador" aria-label="Unidades en el carrito">0</span></div>
+        <div id="contenido-carrito"></div>
+        <button type="button" id="continuar" class="boton-primario">Continuar con mi pedido</button>
+        <p class="nota-carrito">Revisa el total antes de confirmar.</p>
+      </aside>
+    </div>
+    <section id="ayuda-tienda" class="ayuda-tienda" aria-labelledby="titulo-ayuda">
+      <div><p class="antetitulo">Antes de elegir</p><h2 id="titulo-ayuda">Comprar aquí es sencillo.</h2><p>Los detalles que necesitas, a mano.</p></div>
+      <div class="preguntas">
+        <details><summary>¿Cómo recibo el 10 % de descuento?</summary><p>El descuento aplica desde $ 100.000 en productos con IVA incluido, incluyendo ese monto exacto. Se descuenta automáticamente en el carrito, sin ingresar un cupón: $ 100.000 quedan en $ 90.000 finales. Todos los precios incluyen el IVA del 19 % y el envío es gratis.</p></details>
+        <details><summary>¿Cuánto cuesta el envío?</summary><p>El envío es gratis en todos los pedidos y no exige una compra mínima. Verás el envío separado en el resumen de tu pedido.</p></details>
+        <details><summary>¿Cómo compro y sigo mi pedido?</summary><p>Elige tus productos, revisa el carrito y continúa para ingresar tu nombre y confirmar. Después podrás consultar el estado del pago, la disponibilidad y la notificación en el paso Seguimiento.</p></details>
+      </div>
+    </section>
+  </section>
+
+  <section id="paso-confirmar" class="paso" aria-labelledby="titulo-confirmar" hidden>
+    <h1 id="titulo-confirmar" tabindex="-1">Confirma tu pedido</h1>
+    <div id="rechazo" class="rechazo" role="alert" hidden></div>
+    <div class="paso-confirmar">
+      <form id="form-confirmar" class="panel datos-cliente" novalidate>
+        <h2>Tus datos</h2>
+        <label for="cliente">Nombre del cliente</label>
+        <input id="cliente" type="text" autocomplete="name" placeholder="Como aparecerá en el pedido" aria-describedby="error-cliente">
+        <p id="error-cliente" class="error-campo" hidden>Escribe el nombre para confirmar la compra.</p>
+        <button type="submit" id="confirmar" class="boton-primario">Confirmar compra</button>
+        <button type="button" class="boton-secundario" data-ir="productos">Volver a los productos</button>
+      </form>
+      <section class="panel resumen" aria-labelledby="titulo-resumen">
+        <h2 id="titulo-resumen">Resumen del pedido</h2>
+        <div id="resumen-pedido"></div>
+      </section>
+    </div>
+  </section>
+
+  <section id="paso-seguimiento" class="paso" aria-labelledby="titulo-seguimiento" hidden>
+    <h1 id="titulo-seguimiento" tabindex="-1">Seguimiento</h1>
+    <p id="aviso-conexion" class="aviso-conexion" role="status" hidden>Sin conexión con el seguimiento en vivo; se vuelve a intentar sola.</p>
+    <div class="paso-seguimiento">
+      <section id="pedido-actual" class="panel pedido-actual" aria-live="polite" aria-label="Pedido seleccionado"></section>
+      <section class="panel pedidos" aria-labelledby="titulo-pedidos">
+        <h2 id="titulo-pedidos">Tus pedidos</h2>
+        <p id="sin-pedidos" class="vacio">Aún no has hecho pedidos.</p>
+        <ol id="mis-pedidos" class="mis-pedidos"></ol>
+        <button type="button" id="otro-pedido" class="boton-primario">Hacer otro pedido</button>
+      </section>
     </div>
   </section>
 </main>
+
+<div id="aviso-carrito" class="aviso-flotante" role="status" hidden></div>
+
+<div id="barra-movil" class="barra-movil" hidden>
+  <span id="resumen-movil"></span>
+  <button type="button" id="continuar-movil" class="boton-primario">Continuar</button>
+</div>
+
+<footer class="interior pie">
+  <div class="pie-tienda">
+    <div><a class="marca" href="./">Ecommerce Híbrido</a><p>Tus favoritos, en un solo lugar.</p></div>
+    <nav aria-label="Enlaces de la tienda"><button type="button" id="volver-catalogo" class="enlace-boton">Ver catálogo</button><a href="admin.html" target="panel-admin">Panel de administración</a></nav>
+  </div>
+  <details id="escenarios" class="escenarios">
+    <summary>Escenarios de la exposición <span>Herramientas para la demostración académica</span></summary>
+    <div class="grupos-escenarios">
+      <div>
+        <p class="etiqueta-grupo">Válidos <span>(te llevan a confirmar la compra)</span></p>
+        <div class="botones-ejemplo validos">
+          <button type="button" data-escenario="normal">Caso normal<small>Libro ×1, todo correcto</small></button>
+          <button type="button" data-escenario="pago">Pago rechazado<small>Televisor ×1, RN-11</small></button>
+          <button type="button" data-escenario="stock">Sin stock<small>USB ×15, RN-12</small></button>
+          <button type="button" data-escenario="varios">Varios ítems<small>Libro + USB ×11, RN-12</small></button>
+        </div>
+      </div>
+      <div>
+        <p class="etiqueta-grupo">Inválidos <span>(order-api responde 400)</span></p>
+        <div class="botones-ejemplo invalidos">
+          <button type="button" data-escenario="precio-cero" class="invalida">Precio cero<small>precioUnitario 0</small></button>
+          <button type="button" data-escenario="sin-items" class="invalida">Sin ítems<small>lista vacía</small></button>
+          <button type="button" data-escenario="cantidad-cero" class="invalida">Cantidad cero<small>cantidad 0</small></button>
+        </div>
+      </div>
+    </div>
+  </details>
+  <details class="creditos">
+    <summary>Créditos de las fotos</summary>
+    <ul id="lista-creditos"></ul>
+    <p>Fotos con licencia libre de Wikimedia Commons. Las marcas que aparecen pertenecen a sus dueños; esta es una tienda de demostración de un proyecto académico.</p>
+  </details>
+</footer>
 
 </body>
 </html>

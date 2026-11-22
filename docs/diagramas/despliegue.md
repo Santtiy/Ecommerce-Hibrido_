@@ -41,7 +41,7 @@ flowchart TB
 | Puerto | Publicado en | Quién lo usa |
 |---|---|---|
 | 8080 | todas las interfaces (lo filtra el Security Group) | `POST /order` |
-| 8081 | todas las interfaces (lo filtra el Security Group) | Dashboard y `/ws/ordenes` |
+| 8081 | todas las interfaces (lo filtra el Security Group) | Tienda (`/`), panel de administración (`/admin.html`) y `/ws/ordenes` |
 | 15672 | solo `127.0.0.1` de la EC2 | Consola de RabbitMQ, por túnel SSH |
 | 5432, 9092, 5672 | no publicados | Solo dentro de `ecommerce-net` |
 
