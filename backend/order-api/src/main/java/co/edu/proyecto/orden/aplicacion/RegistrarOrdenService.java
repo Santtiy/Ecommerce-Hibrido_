@@ -2,12 +2,12 @@ package co.edu.proyecto.orden.aplicacion;
 
 import co.edu.proyecto.common.contratos.ItemEvento;
 import co.edu.proyecto.common.contratos.OrdenCreada;
+import co.edu.proyecto.orden.aplicacion.puertos.BandejaSalida;
 import co.edu.proyecto.orden.dominio.ItemOrden;
 import co.edu.proyecto.orden.dominio.Orden;
 import co.edu.proyecto.orden.dominio.OrdenBuilder;
 import co.edu.proyecto.orden.dominio.descuentos.EstrategiaDescuento;
 import co.edu.proyecto.orden.dominio.impuestos.EstrategiaImpuesto;
-import co.edu.proyecto.orden.dominio.puertos.BandejaSalida;
 import co.edu.proyecto.orden.dominio.puertos.OrdenRepository;
 import org.springframework.transaction.annotation.Transactional;
 

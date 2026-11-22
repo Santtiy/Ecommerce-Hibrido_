@@ -35,3 +35,5 @@ server:
 
 app:
   origenes-permitidos: ${APP_ORIGENES:http://localhost:8081}
+  # Moneda (ISO 4217) que se asigna a los precios de POST /order, que llegan sin moneda.
+  moneda: COP

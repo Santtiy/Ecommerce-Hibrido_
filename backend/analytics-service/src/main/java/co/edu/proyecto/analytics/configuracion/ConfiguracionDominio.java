@@ -1,6 +1,6 @@
 package co.edu.proyecto.analytics.configuracion;
 
-import co.edu.proyecto.analytics.aplicacion.AgregadorVentas;
+import co.edu.proyecto.analytics.dominio.AgregadorVentas;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

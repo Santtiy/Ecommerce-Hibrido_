@@ -2,6 +2,7 @@ package co.edu.proyecto.orden.infraestructura.rest;
 
 import co.edu.proyecto.orden.dominio.excepciones.DominioException;
 import co.edu.proyecto.orden.dominio.excepciones.EstadoInvalidoException;
+import co.edu.proyecto.orden.dominio.excepciones.OrdenNoEncontradaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
 
-/** Traduce cada excepción a su código HTTP: 400 datos inválidos, 409 estado inválido, 500 lo inesperado. */
+/**
+ * Traduce cada excepción a su código HTTP: 400 datos inválidos, 404 orden inexistente, 409 estado inválido,
+ * 500 lo inesperado.
+ */
 @RestControllerAdvice
 public class ManejadorErrores {
 
@@ -30,6 +34,11 @@ public class ManejadorErrores {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RespuestaError> jsonInvalido(HttpMessageNotReadableException ex) {
         return responder(HttpStatus.BAD_REQUEST, "El cuerpo no es un JSON válido", List.of());
+    }
+
+    @ExceptionHandler(OrdenNoEncontradaException.class)
+    public ResponseEntity<RespuestaError> ordenNoEncontrada(OrdenNoEncontradaException ex) {
+        return responder(HttpStatus.NOT_FOUND, ex.getMessage(), List.of());
     }
 
     @ExceptionHandler(EstadoInvalidoException.class)

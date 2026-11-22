@@ -65,10 +65,13 @@ Todos los servicios tienen los mismos paquetes:
 
 | Paquete | Qué contiene |
 |---|---|
-| `dominio/` | Reglas de negocio en Java puro (sin Spring). Lo comprueba `DominioPuroTest` |
-| `aplicacion/` | Casos de uso (única anotación de Spring permitida: `@Transactional`) |
-| `infraestructura/` | Adaptadores: REST, JPA, Kafka, RabbitMQ, WebSocket |
-| `configuracion/` | Clases `@Configuration` |
+| `dominio/` | Reglas de negocio puras (entidades, value objects, reglas, estrategias) en Java puro, sin Spring. Lo comprueba `DominioPuroTest` |
+| `aplicacion/` | Casos de uso que coordinan puertos, y las interfaces de esos puertos (`puertos/`). Única anotación de Spring permitida: `@Transactional` |
+| `infraestructura/` | Adaptadores, cada uno en el subpaquete de su tecnología: `rest/`, `persistencia/`, `kafka/`, `rabbitmq/`, `websocket/`. En order-api, `bandejasalida/` (outbox: JPA + Kafka) va junto |
+| `configuracion/` | Solo clases `@Configuration` |
+
+El criterio de cada capa está en el `package-info.java` de su paquete. El módulo de Sistemas Operativos está en
+`analytics-service/.../analytics/sistemasoperativos/`.
 
 Los nombres de topics, colas, exchanges, estados y grupos están en un solo sitio:
 `backend/common/src/main/java/co/edu/proyecto/common/nombres/`.

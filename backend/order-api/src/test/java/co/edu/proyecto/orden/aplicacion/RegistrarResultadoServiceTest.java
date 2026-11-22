@@ -3,14 +3,15 @@ package co.edu.proyecto.orden.aplicacion;
 import co.edu.proyecto.common.contratos.EstadoTarea;
 import co.edu.proyecto.common.contratos.ResultadoTarea;
 import co.edu.proyecto.common.nombres.TipoTarea;
+import co.edu.proyecto.orden.aplicacion.puertos.AuditoriaRepository;
+import co.edu.proyecto.orden.aplicacion.puertos.RegistroAuditoria;
 import co.edu.proyecto.orden.dominio.Dinero;
 import co.edu.proyecto.orden.dominio.EstadoOrden;
 import co.edu.proyecto.orden.dominio.ItemOrden;
 import co.edu.proyecto.orden.dominio.Orden;
 import co.edu.proyecto.orden.dominio.OrdenBuilder;
-import co.edu.proyecto.orden.dominio.puertos.AuditoriaRepository;
+import co.edu.proyecto.orden.dominio.excepciones.OrdenNoEncontradaException;
 import co.edu.proyecto.orden.dominio.puertos.OrdenRepository;
-import co.edu.proyecto.orden.dominio.puertos.RegistroAuditoria;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -119,5 +120,18 @@ class RegistrarResultadoServiceTest {
                 .hasMessageContaining("PAGO");
         assertThat(orden.estado()).isEqualTo(EstadoOrden.CREADA);
         verifyNoInteractions(ordenes, auditoria);
+    }
+
+    @Test
+    void unPagoDeUnaOrdenQueNoExisteLanzaOrdenNoEncontrada() {
+        // Arrange
+        Orden orden = ordenCreada();
+        when(ordenes.buscarPorId(orden.id())).thenReturn(Optional.empty());
+
+        // Act y Assert
+        assertThatThrownBy(() -> servicio.registrar(TipoTarea.PAGO, resultado(orden, EstadoTarea.PAYMENT_SUCCESS)))
+                .isInstanceOf(OrdenNoEncontradaException.class)
+                .hasMessageContaining(orden.id().toString());
+        verify(ordenes, never()).guardar(any());
     }
 }

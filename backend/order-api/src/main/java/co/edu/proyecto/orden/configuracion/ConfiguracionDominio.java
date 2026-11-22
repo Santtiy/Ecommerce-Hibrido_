@@ -2,12 +2,12 @@ package co.edu.proyecto.orden.configuracion;
 
 import co.edu.proyecto.orden.aplicacion.RegistrarOrdenService;
 import co.edu.proyecto.orden.aplicacion.RegistrarResultadoService;
+import co.edu.proyecto.orden.aplicacion.puertos.AuditoriaRepository;
+import co.edu.proyecto.orden.aplicacion.puertos.BandejaSalida;
 import co.edu.proyecto.orden.dominio.descuentos.DescuentoPorMonto;
 import co.edu.proyecto.orden.dominio.descuentos.EstrategiaDescuento;
 import co.edu.proyecto.orden.dominio.impuestos.EstrategiaImpuesto;
 import co.edu.proyecto.orden.dominio.impuestos.IvaColombia;
-import co.edu.proyecto.orden.dominio.puertos.AuditoriaRepository;
-import co.edu.proyecto.orden.dominio.puertos.BandejaSalida;
 import co.edu.proyecto.orden.dominio.puertos.OrdenRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

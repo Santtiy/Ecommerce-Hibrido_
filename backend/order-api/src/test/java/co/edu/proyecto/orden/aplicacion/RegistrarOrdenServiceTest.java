@@ -1,13 +1,13 @@
 package co.edu.proyecto.orden.aplicacion;
 
 import co.edu.proyecto.common.contratos.OrdenCreada;
+import co.edu.proyecto.orden.aplicacion.puertos.BandejaSalida;
 import co.edu.proyecto.orden.dominio.Dinero;
 import co.edu.proyecto.orden.dominio.ItemOrden;
 import co.edu.proyecto.orden.dominio.Orden;
 import co.edu.proyecto.orden.dominio.descuentos.DescuentoPorMonto;
 import co.edu.proyecto.orden.dominio.excepciones.OrdenInvalidaException;
 import co.edu.proyecto.orden.dominio.impuestos.IvaColombia;
-import co.edu.proyecto.orden.dominio.puertos.BandejaSalida;
 import co.edu.proyecto.orden.dominio.puertos.OrdenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

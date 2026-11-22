@@ -10,7 +10,7 @@ Rutas relativas a `backend/order-api/src/main/java/co/edu/proyecto/orden/` salvo
 | **O** Abierto/cerrado | `dominio/descuentos/` y `dominio/impuestos/`: para un descuento nuevo se crea una clase y se cambia un `@Bean` en `ConfiguracionDominio` | Editar `Orden` cada vez que cambia una regla de precios. No hay ningún `if`/`switch` por tipo de estrategia |
 | **L** Sustitución de Liskov | Las 4 estrategias cumplen el contrato documentado en sus interfaces (no `null`, no negativos, misma moneda). `CalculoTotalTest` las intercambia | Un total corrupto por una implementación que rompa el contrato |
 | **I** Segregación de interfaces | Tres puertos pequeños: `OrdenRepository`, `BandejaSalida`, `AuditoriaRepository` | Que un adaptador o un mock tenga que implementar métodos que no usa |
-| **D** Inversión de dependencias | Los casos de uso dependen de los puertos de `dominio/puertos/`; los adaptadores de `infraestructura/` los implementan. `DominioPuroTest` verifica que `dominio/` no importa Spring, Jakarta ni Kafka | Que el dominio dependa de la tecnología y no se pueda probar sin base de datos ni broker |
+| **D** Inversión de dependencias | Los casos de uso dependen de puertos: `OrdenRepository` en `dominio/puertos/` (el Repository del dominio) y `BandejaSalida`/`AuditoriaRepository` en `aplicacion/puertos/` (cada puerto en la capa que lo necesita); los adaptadores de `infraestructura/` los implementan. `DominioPuroTest` verifica que `dominio/` no importa Spring, Jakarta ni Kafka | Que el dominio dependa de la tecnología y no se pueda probar sin base de datos ni broker |
 
 ## Patrones del enunciado
 
@@ -26,5 +26,5 @@ Rutas relativas a `backend/order-api/src/main/java/co/edu/proyecto/orden/` salvo
 |---|---|---|
 | Outbox (bandeja de salida) | `BandejaSalida`, `PublicadorBandejaSalida` | Que guardar la orden y publicar su evento no pueda quedar a medias |
 | Consumidor idempotente | `RegistrarResultadoService`, `TableroOrdenes`, `AgregadorVentas`, auditoría con `UNIQUE` | Que un mensaje repetido no cambie el resultado |
-| Puertos y adaptadores | `dominio/puertos/` ↔ `infraestructura/` | Probar el dominio y los casos de uso sin infraestructura |
+| Puertos y adaptadores | `dominio/puertos/` y `aplicacion/puertos/` ↔ `infraestructura/` | Probar el dominio y los casos de uso sin infraestructura |
 | Composición en los workers | `EjecutorTarea` (common-mensajeria) recibe la `ReglaTarea` y el topic de cada worker; `ReglaPago`, `ReglaInventario` y `ReglaNotificacion` cumplen el mismo contrato | Copiar el mismo consumidor en tres servicios: un worker nuevo solo aporta su regla, su cola y su topic |

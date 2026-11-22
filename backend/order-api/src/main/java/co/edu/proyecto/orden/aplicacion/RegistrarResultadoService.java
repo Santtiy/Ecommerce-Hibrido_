@@ -3,12 +3,12 @@ package co.edu.proyecto.orden.aplicacion;
 import co.edu.proyecto.common.contratos.EstadoTarea;
 import co.edu.proyecto.common.contratos.ResultadoTarea;
 import co.edu.proyecto.common.nombres.TipoTarea;
+import co.edu.proyecto.orden.aplicacion.puertos.AuditoriaRepository;
+import co.edu.proyecto.orden.aplicacion.puertos.RegistroAuditoria;
 import co.edu.proyecto.orden.dominio.Orden;
 import co.edu.proyecto.orden.dominio.OrdenId;
-import co.edu.proyecto.orden.dominio.excepciones.OrdenInvalidaException;
-import co.edu.proyecto.orden.dominio.puertos.AuditoriaRepository;
+import co.edu.proyecto.orden.dominio.excepciones.OrdenNoEncontradaException;
 import co.edu.proyecto.orden.dominio.puertos.OrdenRepository;
-import co.edu.proyecto.orden.dominio.puertos.RegistroAuditoria;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -35,6 +35,7 @@ public class RegistrarResultadoService {
     /**
      * @param tipo      tarea (worker) de cuyo topic llegó el resultado; se audita como {@code origen}
      * @throws IllegalArgumentException si el estado del resultado no es del tipo {@code tipo}
+     * @throws OrdenNoEncontradaException si es un resultado de pago de una orden que no existe
      */
     @Transactional
     public void registrar(TipoTarea tipo, ResultadoTarea resultado) {
@@ -50,7 +51,7 @@ public class RegistrarResultadoService {
     /** {@code estado} ya es de tipo PAGO: PAYMENT_SUCCESS confirma la orden y PAYMENT_FAILED la cancela. */
     private void aplicarPago(OrdenId id, EstadoTarea estado) {
         Orden orden = ordenes.buscarPorId(id)
-                .orElseThrow(() -> new OrdenInvalidaException("No existe la orden " + id));
+                .orElseThrow(() -> new OrdenNoEncontradaException(id));
         if (!orden.estaCreada()) {
             return; // ya se aplicó antes: el resultado está repetido
         }

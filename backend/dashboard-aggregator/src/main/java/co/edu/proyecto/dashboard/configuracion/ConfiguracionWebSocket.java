@@ -1,6 +1,6 @@
 package co.edu.proyecto.dashboard.configuracion;
 
-import co.edu.proyecto.dashboard.infraestructura.CanalWebSocket;
+import co.edu.proyecto.dashboard.infraestructura.websocket.CanalWebSocket;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
