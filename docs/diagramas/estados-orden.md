@@ -8,7 +8,7 @@ cualquier otra lanza `EstadoInvalidoException`.
 ```mermaid
 stateDiagram-v2
     [*] --> CREADA : OrdenBuilder.construir()<br/>POST /order → 202
-    CREADA --> CREADA : calcularTotal()<br/>agregarProducto()
+    CREADA --> CREADA : calcularTotal()
     CREADA --> PAGADA : confirmarPago()<br/>billing_events = PAYMENT_SUCCESS
     CREADA --> CANCELADA : cancelar()<br/>billing_events = PAYMENT_FAILED
     PAGADA --> [*]

@@ -75,16 +75,6 @@ class OrdenTest {
     }
 
     @Test
-    void noSePuedenAgregarProductosAUnaOrdenPagada() {
-        // Arrange
-        Orden orden = ordenNueva();
-        orden.confirmarPago();
-
-        // Act + Assert
-        assertThatThrownBy(() -> orden.agregarProducto(LIBRO)).isInstanceOf(EstadoInvalidoException.class);
-    }
-
-    @Test
     void laListaDeItemsNoSePuedeModificarDesdeFuera() {
         // Arrange
         Orden orden = ordenNueva();
