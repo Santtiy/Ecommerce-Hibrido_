@@ -6,7 +6,6 @@ import co.edu.proyecto.orden.dominio.excepciones.OrdenInvalidaException;
 import co.edu.proyecto.orden.dominio.impuestos.EstrategiaImpuesto;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,7 +25,7 @@ public class Orden {
     Orden(OrdenId id, String cliente, List<ItemOrden> items, Instant creadaEn) {
         this.id = id;
         this.cliente = cliente;
-        this.items = new ArrayList<>(items);
+        this.items = List.copyOf(items); // los ítems se fijan al crear la orden y ya no cambian
         this.creadaEn = creadaEn;
         this.estado = EstadoOrden.CREADA;
         this.total = Dinero.cero(items.get(0).precioUnitario().moneda());
@@ -43,15 +42,6 @@ public class Orden {
         orden.estado = estado;
         orden.total = total;
         return orden;
-    }
-
-    /** RN-15: solo se agregan productos a una orden CREADA. */
-    public void agregarProducto(ItemOrden item) {
-        exigirEstado(EstadoOrden.CREADA, "agregar productos");
-        if (item == null) {
-            throw new OrdenInvalidaException("El ítem no puede ser nulo");
-        }
-        items.add(item);
     }
 
     /** RN-04: total = suma de subtotales, menos el descuento, más el impuesto (en ese orden). RN-15: solo en CREADA. */
@@ -104,9 +94,9 @@ public class Orden {
         return creadaEn;
     }
 
-    /** Copia inmutable: quien la reciba no puede cambiar los ítems de la orden. */
+    /** Lista inmutable: quien la reciba no puede cambiar los ítems de la orden. */
     public List<ItemOrden> items() {
-        return List.copyOf(items);
+        return items;
     }
 
     private Dinero subtotal() {
