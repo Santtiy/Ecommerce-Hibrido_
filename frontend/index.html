@@ -3,78 +3,119 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ecommerce Híbrido · Dashboard</title>
+  <meta name="color-scheme" content="light dark">
+  <title>Panel de órdenes · Ecommerce Híbrido</title>
   <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="stylesheet" href="css/estilos.css">
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Ecommerce Híbrido — Dashboard de órdenes</h1>
-    <div id="conexion" class="conexion" role="status">
-      <span class="punto"></span><span id="texto-conexion">desconectado</span>
+
+<header class="cabecera">
+  <div class="cabecera-interior">
+    <div>
+      <h1>Panel de órdenes</h1>
+      <p class="producto">Ecommerce Híbrido</p>
     </div>
-  </header>
+    <p id="conexion" class="conexion" role="status">Conectando con el dashboard…</p>
+  </div>
+</header>
 
-  <section class="tarjeta">
-    <h2>Ejemplos rápidos</h2>
-    <div class="ejemplos">
-      <button type="button" data-ejemplo="normal">Caso normal<small>Libro ×1 a 150.000 → todo exitoso</small></button>
-      <button type="button" data-ejemplo="pago">Pago rechazado RN-11<small>Televisor ×1 a 1.500.000 → PAYMENT_FAILED</small></button>
-      <button type="button" data-ejemplo="stock">Sin stock RN-12<small>Memoria USB ×15 a 20.000 → STOCK_OUT_OF_STOCK</small></button>
-      <button type="button" data-ejemplo="varios">Varios ítems RN-12<small>Libro ×1 + USB ×50 → STOCK_OUT_OF_STOCK</small></button>
-      <button type="button" data-ejemplo="precio-cero" class="invalida">Precio cero<small>Envía precio 0 → 400</small></button>
-      <button type="button" data-ejemplo="sin-items" class="invalida">Sin items<small>Envía una lista vacía → 400</small></button>
-      <button type="button" data-ejemplo="cantidad-cero" class="invalida">Cantidad cero<small>Envía cantidad 0 → 400</small></button>
-    </div>
-  </section>
+<main class="columnas">
+  <div class="columna-formulario">
+    <section class="panel" aria-labelledby="titulo-orden">
+      <h2 id="titulo-orden">Nueva orden</h2>
 
-  <section class="tarjeta">
-    <h2>Nueva orden</h2>
-    <form id="formulario" novalidate>
-      <label for="cliente">Cliente</label>
-      <input id="cliente" type="text" autocomplete="off" placeholder="Nombre del cliente">
-
-      <div class="tabla-envoltura separada">
-        <table id="items">
-          <thead><tr><th>SKU</th><th>Nombre</th><th class="col-num">Cantidad</th><th class="col-num">Precio unitario</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="fila-botones">
-        <button type="button" id="anadir-fila">+ Añadir ítem</button>
+      <div class="ejemplos">
+        <p class="etiqueta-grupo">Rellenar con un ejemplo</p>
+        <div class="botones-ejemplo validos">
+          <button type="button" data-ejemplo="normal">Caso normal<small>Libro ×1, todo correcto</small></button>
+          <button type="button" data-ejemplo="pago">Pago rechazado<small>Televisor ×1, RN-11</small></button>
+          <button type="button" data-ejemplo="stock">Sin stock<small>USB ×15, RN-12</small></button>
+          <button type="button" data-ejemplo="varios">Varios ítems<small>Libro + USB ×50, RN-12</small></button>
+        </div>
+        <p class="etiqueta-grupo">Enviar un ejemplo inválido <span>(order-api responde 400)</span></p>
+        <div class="botones-ejemplo invalidos">
+          <button type="button" data-ejemplo="precio-cero" class="invalida">Precio cero<small>precioUnitario 0</small></button>
+          <button type="button" data-ejemplo="sin-items" class="invalida">Sin ítems<small>lista vacía</small></button>
+          <button type="button" data-ejemplo="cantidad-cero" class="invalida">Cantidad cero<small>cantidad 0</small></button>
+        </div>
       </div>
 
-      <dl class="totales">
-        <dt>Subtotal</dt><dd id="subtotal">$ 0</dd>
-        <dt>Descuento aplicado (10 % si supera 100.000)</dt><dd id="descuento">$ 0</dd>
-        <dt class="total">Total con IVA (19 %)</dt><dd id="total" class="total">$ 0</dd>
-      </dl>
-      <p class="nota">Estimación del navegador. El total real lo calcula el servidor.</p>
+      <form id="formulario" novalidate>
+        <div class="campo">
+          <label for="cliente">Cliente</label>
+          <input id="cliente" type="text" autocomplete="off" placeholder="Nombre del cliente">
+        </div>
 
-      <div class="fila-botones">
+        <fieldset class="items">
+          <legend>Ítems</legend>
+          <div class="cabecera-items" aria-hidden="true">
+            <span>SKU</span><span>Nombre</span><span class="num">Cantidad</span><span class="num">Precio unitario</span><span></span>
+          </div>
+          <ol id="items"></ol>
+          <button type="button" id="anadir-fila" class="anadir">Añadir ítem</button>
+        </fieldset>
+
+        <div class="liquidacion">
+          <dl class="totales">
+            <dt>Subtotal</dt><dd id="subtotal">$ 0</dd>
+            <dt>Descuento <abbr title="RN-14: 10 % si el subtotal supera 100.000">RN-14</abbr></dt><dd id="descuento">$ 0</dd>
+            <dt>IVA 19 %</dt><dd id="iva">$ 0</dd>
+            <dt class="total">Total estimado</dt><dd id="total" class="total">$ 0</dd>
+          </dl>
+          <ul id="prediccion" class="prediccion" aria-live="polite"></ul>
+          <p class="nota">Lo calcula el navegador con las mismas reglas que el servidor; el total que vale es el de order-api.</p>
+        </div>
+
+        <div id="errores" class="errores" role="alert" hidden></div>
+
         <button type="submit" id="enviar" class="primario">Enviar orden</button>
-      </div>
-    </form>
-  </section>
+      </form>
+    </section>
 
-  <section id="respuesta" class="tarjeta" aria-live="polite">
-    <h2>Respuesta de order-api</h2>
-    <div id="respuesta-contenido" class="vacio">Aún no se ha enviado ninguna orden.</div>
-  </section>
+    <section id="respuesta" class="panel respuesta" aria-live="polite" aria-labelledby="titulo-respuesta">
+      <h2 id="titulo-respuesta">Respuesta de order-api</h2>
+      <p id="respuesta-contenido" class="vacio">Envía una orden para ver aquí el código HTTP, el total que calcula el servidor y los cuerpos JSON.</p>
+    </section>
+  </div>
 
-  <section class="tarjeta">
-    <div class="cabecera-tabla">
-      <h2>Órdenes en vivo</h2>
-      <div class="contador">Órdenes recibidas: <strong id="contador">0</strong></div>
+  <section class="panel panel-ordenes" aria-labelledby="titulo-ordenes">
+    <div class="cabecera-panel">
+      <h2 id="titulo-ordenes">Órdenes</h2>
+      <p id="mostrando" class="mostrando" aria-live="polite"></p>
     </div>
+    <div class="filtros" role="group" aria-label="Filtrar por resultado">
+      <button type="button" data-filtro="todas" aria-pressed="true">
+        Todas<small><b id="cuenta-todas">0</b> en el tablero</small>
+      </button>
+      <button type="button" data-filtro="completada" class="completada" aria-pressed="false">
+        Completadas<small><b id="cuenta-completada">0</b> con todo correcto</small>
+      </button>
+      <button type="button" data-filtro="fallo" class="fallo" aria-pressed="false">
+        Con fallo<small><b id="cuenta-fallo">0</b> <span id="detalle-fallo">(0 de pago, 0 de stock)</span></small>
+      </button>
+      <button type="button" data-filtro="proceso" class="proceso" aria-pressed="false">
+        En proceso<small><b id="cuenta-proceso">0</b> esperando a los workers</small>
+      </button>
+    </div>
+    <input id="buscar" type="search" placeholder="Buscar por orderId o cliente" aria-label="Buscar por orderId o cliente" autocomplete="off">
     <div class="tabla-envoltura">
       <table id="ordenes">
-        <thead><tr><th>Orden</th><th>Pago</th><th>Stock</th><th>Correo</th><th>Actualizada</th></tr></thead>
-        <tbody id="filas"><tr id="sin-ordenes"><td colspan="5" class="vacio">Aún no llegan órdenes.</td></tr></tbody>
+        <thead>
+          <tr><th>Orden</th><th>Pago</th><th>Stock</th><th>Correo</th><th>Resultado</th></tr>
+        </thead>
+        <tbody id="filas"></tbody>
       </table>
+      <p id="sin-ordenes" class="vacio">Todavía no hay órdenes. Envía una desde el formulario o con un ejemplo.</p>
     </div>
+    <p class="leyenda">
+      Los tres workers reciben cada orden a la vez por el fanout <code>order_tasks</code>, así que pago, stock y correo
+      pueden terminar en cualquier orden. El cliente y el total solo se conocen en las órdenes enviadas desde este navegador.
+    </p>
   </section>
 </main>
 

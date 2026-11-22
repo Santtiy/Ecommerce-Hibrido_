@@ -1,4 +1,4 @@
-// Configuración del dashboard: direcciones de los servicios, estados del enunciado y órdenes de ejemplo.
+// Configuración del dashboard: direcciones de los servicios, estados del enunciado, reglas y órdenes de ejemplo.
 // El host sale de la página (en la EC2 es la IP pública), nunca se escribe a mano.
 
 const HOST = window.location.hostname;
@@ -13,12 +13,25 @@ export const SEGUNDOS_REINTENTO = 3;
 export const ESTADOS_EXITO = ['PAYMENT_SUCCESS', 'STOCK_RESERVED', 'EMAIL_SENT'];
 export const ESTADOS_FALLO = ['PAYMENT_FAILED', 'STOCK_OUT_OF_STOCK'];
 
-// Estimación del total en el navegador (el total real lo calcula order-api).
-export const ESTIMACION = { umbralDescuento: 100000, porcentajeDescuento: 10, porcentajeIva: 19 };
+// Las tres etapas de { payment, stock, email } (ProgresoOrden en dashboard-aggregator), en el orden de la tabla.
+export const ETAPAS = [
+  { campo: 'payment', nombre: 'Pago',   worker: 'billing-worker' },
+  { campo: 'stock',   nombre: 'Stock',  worker: 'inventory-worker' },
+  { campo: 'email',   nombre: 'Correo', worker: 'notification-worker' },
+];
+
+// Copia de las reglas del backend, solo para estimar y avisar en el navegador (la decisión la toma el servidor).
+export const REGLAS = {
+  umbralDescuento: 100000,    // RN-14, DescuentoPorMonto: 10 % si el subtotal lo supera
+  porcentajeDescuento: 10,
+  porcentajeIva: 19,          // IvaColombia
+  limitePago: 1000000,        // RN-11, ReglaPago: el pago falla si el total lo supera
+  maximoUnidades: 10,         // RN-12, ReglaInventario: sin stock si un ítem pide más
+};
 
 export const CLIENTE_EJEMPLO = 'Cliente Demo';
 
-// enviar: true manda la orden al pulsar el botón (casos inválidos que devuelven 400).
+// enviar: true manda la orden al pulsar el botón, sin validar en el navegador (casos que devuelven 400).
 export const EJEMPLOS = {
   'normal':        { enviar: false, items: [{ sku: 'LIB-001', nombre: 'Libro', cantidad: 1, precioUnitario: 150000 }] },
   'pago':          { enviar: false, items: [{ sku: 'TV-001', nombre: 'Televisor', cantidad: 1, precioUnitario: 1500000 }] },
