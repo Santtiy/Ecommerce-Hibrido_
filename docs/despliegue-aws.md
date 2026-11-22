@@ -17,10 +17,11 @@ con las cifras que se midieron con `docker stats` en aquella VM.
 | `ops/aws/exportar-imagenes.ps1` | Exportación de las 7 imágenes en Windows (`docker save` + gzip). |
 | `.gitattributes`, `ops/aws/.gitattributes` | Fuerzan LF en `.sh`/`.conf` aunque Git use `core.autocrlf=true`. |
 
-> **Estado:** el despliegue de esta versión en EC2 está **pendiente**. Este documento describe la
-> configuración y los pasos; los valores medidos en la instancia (`docker stats`, `free -h`, `vmstat`)
-> se registrarán al desplegar. Hasta entonces, las únicas cifras medidas son las locales (Docker Desktop
-> con los mismos límites) de §3 y §12.
+> **Estado:** desplegada en una EC2 t3.small (Ubuntu Server 24.04) el 2026-11-22.
+> `ops\verificar-flujo.ps1 -Ssh` contra la IP pública dio **14/14** y la instancia sostiene el flujo completo.
+> Las mediciones reales (`free -m`, `vmstat`, `docker stats` a los ~10 min y a la hora) y la evaluación del
+> criterio de §3 están en [§12](#12-monitoreo-de-memoria-cpu-y-swap): se cumple todo salvo el swap en uso,
+> que supera los ~150 MiB sin que haya intercambio sostenido.
 
 ---
 
@@ -146,6 +147,9 @@ nativos`. Con Spring Boot la parte fuera del heap es de **~65-80 MB** en los wor
   La medición local más alta (1442 MiB) queda prácticamente en el criterio de ~1450 MiB: si en EC2 se
   repite un valor así, la instancia está al límite y conviene volver a medir tras `down`/`up` (en local
   la siguiente medición dio 1311 MiB) antes de decidir.
+
+  **Resultado en la EC2** (§12): el total de `docker stats`, `MemAvailable` y `si`/`so` ≈ 0 se cumplen;
+  el swap en uso (467-667 MiB) no, aunque sin intercambio sostenido.
 
   Si no se cumple, la instancia está justa: subir solo los límites que lo necesiten **no
   arregla la falta de RAM**; la solución es t3.medium (4 GiB) con los mismos archivos.
@@ -501,9 +505,46 @@ La estimación se quedó **por debajo** de lo medido. Cada cierre de la reorgani
 
 Las imágenes y los límites fueron los mismos en todas: la variación (~130 MiB) es sobre todo de Kafka
 (G1 crece con el tiempo) y de order-api, los dos por encima de su rango estimado. Con ~1600-1650 MiB
-disponibles en la t3.small, el margen esperado es de **~160-340 MiB**. En EC2 se debe medir a los
-~10 minutos de arrancar, tras enviar algunas órdenes, y otra vez pasada una hora; el resultado se
-registrará en este documento al desplegar.
+disponibles en la t3.small, el margen esperado es de **~160-340 MiB**. En EC2 se midió a los
+~10 minutos de arrancar y otra vez pasada una hora (siguiente apartado).
+
+### Medición en la EC2 t3.small (2026-11-22)
+
+Instancia t3.small con Ubuntu Server 24.04 y 2 GiB de swap, arrancada con `ops/aws/arrancar-aws.sh`.
+`ops\verificar-flujo.ps1 -Api http://<IP>:8080/order -WebSocket ws://<IP>:8081/ws/ordenes -Origen http://<IP>:8081 -Ssh ubuntu@<IP> -Clave <ruta.pem> -Memoria`
+dio **14/14** contra la IP pública.
+
+| Momento | `free -m` used / total | available | Swap en uso | `vmstat` si/so | Suma de `docker stats` |
+|---|---:|---:|---:|---|---:|
+| ~10 min | 1511 / 1905 MiB | 394 MiB | 467 MiB | ≈ 0 | ~971 MiB |
+| ~1 h | 1639 / 1905 MiB | 266 MiB | 591 MiB | ≈ 0 | ~1220 MiB (kafka 374, order-api 172) |
+| Prueba con carga | — | — | 661-667 MB (`swpd`, estable) | si casi siempre 0 (picos de 114 KB/s); so 0 (un pico de 834); `wa` 0-6 % | — |
+
+* En reposo hubo **un episodio aislado de swap-in**: `si` hasta 13354 KB/s y `wa` 47 % durante ~8 s.
+  No se repitió.
+* La CPU muestra picos de 30-40 % cada ~30 s, que coinciden con el healthcheck de Kafka
+  (`kafka-topics.sh`, otra JVM dentro del contenedor; §5).
+
+| Criterio de §3 | Medido | Resultado |
+|---|---|---|
+| Total de `docker stats` ≤ ~1450 MiB | ~971 MiB (10 min), ~1220 MiB (1 h) | ✅ |
+| `MemAvailable` ≥ ~250 MiB | 394 MiB (10 min), 266 MiB (1 h) | ✅ (justo a la hora) |
+| `si`/`so` ≈ 0, sin intercambio sostenido | ≈ 0; un episodio aislado de ~8 s | ✅ |
+| Swap en uso estable < ~150 MiB | 467 → 591 → 661-667 MiB, estable bajo carga | ❌ |
+
+**Conclusión.** La t3.small **cumple el flujo completo** (14/14 contra la IP pública). El criterio de
+swap no se cumple, pero no hay intercambio sostenido: `si`/`so` se mantiene en ≈ 0 y `swpd` no crece
+durante la prueba con carga. El kernel lleva al swap páginas **inactivas** de las JVM (memoria que se
+tocó al arrancar y no se vuelve a usar) y las deja allí. Por eso la suma de `docker stats` en EC2
+(~971 MiB) es menor que en local (1311-1442 MiB): `docker stats` cuenta solo la memoria en RAM de cada
+contenedor, no lo que está en el swap.
+
+Recomendaciones:
+* **Antes de una demostración**, reiniciar los contenedores para empezar con el swap vacío y la RAM
+  holgada: `bash ops/aws/detener-aws.sh` y después `bash ops/aws/arrancar-aws.sh` (por tandas, para no
+  gastar créditos de CPU de golpe; §13).
+* Si `vmstat 5 5` muestra `si`/`so` > 0 **de forma sostenida** (no un episodio aislado), la RAM no
+  alcanza: pasar a **t3.medium** (4 GiB) con los mismos archivos (§15).
 
 ---
 

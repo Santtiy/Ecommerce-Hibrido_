@@ -4,8 +4,11 @@
 #   3. analytics-service registro la orden (log del contenedor o, en modo desarrollo, .run\logs).
 #   4. dashboard-aggregator: el WebSocket devuelve { payment, stock, email } con los estados esperados.
 # Con -Memoria, al final muestra el consumo de cada contenedor y la suma (para comparar con la t3.small).
+# Con -Ssh (y -Clave), los comandos docker (psql, logs, stats) se ejecutan en la EC2 por ssh.
 #
 # Uso (con los contenedores levantados):  powershell -ExecutionPolicy Bypass -File ops\verificar-flujo.ps1 -Memoria
+# Contra la EC2:  ops\verificar-flujo.ps1 -Api http://<IP>:8080/order -WebSocket ws://<IP>:8081/ws/ordenes `
+#                   -Origen http://<IP>:8081 -Ssh ubuntu@<IP> -Clave <ruta.pem> -Memoria
 
 param(
     [string]$Api = 'http://localhost:8080/order',
@@ -13,8 +16,41 @@ param(
     # El panel solo acepta los origenes de APP_ORIGENES: el script se presenta como la pagina del dashboard.
     [string]$Origen = 'http://localhost:8081',
     [int]$SegundosMaximo = 60,
-    [switch]$Memoria
+    [switch]$Memoria,
+    # Usuario y host de la EC2 (p. ej. ubuntu@<IP>). Vacio: docker se ejecuta en esta maquina.
+    [string]$Ssh = '',
+    # Clave privada para ssh (opcional si ya la tiene el agente o ~/.ssh/config).
+    [string]$Clave = ''
 )
+
+# Comillas simples de sh: el comando viaja como texto y la shell remota lo vuelve a partir en argumentos.
+function ConvertTo-ArgumentoSh([string]$texto) { "'" + ($texto -replace "'", "'\''") + "'" }
+
+# Ejecuta un comando en la EC2 (solo se usa con -Ssh). El comando ya va escrito para sh.
+function Invoke-Remoto([string]$comando) {
+    $opciones = @('-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', '-o', 'StrictHostKeyChecking=accept-new')
+    if ($Clave) { $opciones += @('-i', $Clave) }
+    return & ssh @opciones $Ssh $comando
+}
+
+# Ejecuta docker aqui o, con -Ssh, en la EC2. -ConErrores une stderr a la salida (para docker logs).
+function Invoke-Docker([string[]]$argumentos, [switch]$ConErrores) {
+    if (-not $Ssh) {
+        if ($ConErrores) { return & docker @argumentos 2>&1 }
+        return & docker @argumentos 2>$null
+    }
+    $comando = 'docker ' + (($argumentos | ForEach-Object { ConvertTo-ArgumentoSh $_ }) -join ' ')
+    if ($ConErrores) { $comando += ' 2>&1' } else { $comando += ' 2>/dev/null' }
+    return Invoke-Remoto $comando
+}
+
+if ($Ssh) {
+    if ($Clave -and -not (Test-Path $Clave)) { Write-Host "No existe la clave $Clave" -ForegroundColor Red; exit 1 }
+    if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) { Write-Host "ssh no esta en el PATH." -ForegroundColor Red; exit 1 }
+    $null = Invoke-Docker @('ps', '-q')
+    if ($LASTEXITCODE -ne 0) { Write-Host "No se pudo ejecutar docker en $Ssh por ssh (codigo $LASTEXITCODE)." -ForegroundColor Red; exit 1 }
+    Write-Host "Comandos docker por ssh en $Ssh" -ForegroundColor Cyan
+}
 
 $casos = @(
     @{ Nombre = 'Libro x1 (todo correcto)'; Total = 160650; Estado = 'PAGADA'
@@ -52,7 +88,7 @@ function Send-Orden([string]$json) {
 function Get-EstadoEnBaseDeDatos([string]$id) {
     $sql = "SELECT o.estado || '|' || COALESCE((SELECT string_agg(a.origen || '=' || a.status, ',' ORDER BY a.origen) " +
            "FROM auditoria_ordenes a WHERE a.orden_id = o.id), '') FROM ordenes o WHERE o.id = '$id'"
-    return (& docker exec postgres-db psql -U ecommerce -d ecommerce -At -c $sql 2>$null) -join ''
+    return (Invoke-Docker @('exec', 'postgres-db', 'psql', '-U', 'ecommerce', '-d', 'ecommerce', '-At', '-c', $sql)) -join ''
 }
 
 # El cliente WebSocket de .NET Framework (PowerShell 5.1) rechaza en el primer intento de cada proceso la
@@ -121,9 +157,9 @@ foreach ($caso in $aceptadas) {
 Write-Host "== 3. analytics-service" -ForegroundColor Cyan
 # En Docker se lee el log del contenedor; en modo desarrollo (ops\arrancar.ps1), el de .run\logs.
 $logDesarrollo = Join-Path (Split-Path -Parent $PSScriptRoot) '.run\logs\analytics-service.log'
-if ((docker inspect --format '{{.State.Running}}' analytics-service 2>$null) -eq 'true') {
-    $logAnalytics = (& docker logs analytics-service 2>&1) -join "`n"
-} elseif (Test-Path $logDesarrollo) {
+if ((Invoke-Docker @('inspect', '--format', '{{.State.Running}}', 'analytics-service')) -eq 'true') {
+    $logAnalytics = (Invoke-Docker @('logs', 'analytics-service') -ConErrores) -join "`n"
+} elseif (-not $Ssh -and (Test-Path $logDesarrollo)) {
     $flujo = New-Object System.IO.FileStream($logDesarrollo, 'Open', 'Read', 'ReadWrite')
     $lector = New-Object System.IO.StreamReader($flujo)
     try { $logAnalytics = $lector.ReadToEnd() } finally { $lector.Dispose() }
@@ -151,7 +187,7 @@ try {
 if ($Memoria) {
     Write-Host "== Memoria en uso por contenedor" -ForegroundColor Cyan
     $totalMiB = 0
-    foreach ($linea in (& docker stats --no-stream --format '{{.Name}};{{.MemUsage}}')) {
+    foreach ($linea in (Invoke-Docker @('stats', '--no-stream', '--format', '{{.Name}};{{.MemUsage}}'))) {
         $nombre, $uso = $linea -split ';'
         $usado = ($uso -split '/')[0].Trim()
         $valor = [double]($usado -replace '[^0-9.]', '')
@@ -160,6 +196,10 @@ if ($Memoria) {
         Write-Host ("  {0,-22} {1}" -f $nombre, $uso)
     }
     Write-Host ("  TOTAL                  {0:F0} MiB  (en la t3.small hay ~1600 MiB libres para contenedores)" -f $totalMiB) -ForegroundColor Yellow
+    if ($Ssh) {
+        Write-Host "== Memoria y swap de la EC2 (free -m)" -ForegroundColor Cyan
+        Invoke-Remoto 'free -m' | ForEach-Object { Write-Host "  $_" }
+    }
 }
 
 Write-Host ""
