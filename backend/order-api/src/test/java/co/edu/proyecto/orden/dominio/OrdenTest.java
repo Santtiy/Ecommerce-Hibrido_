@@ -2,8 +2,12 @@ package co.edu.proyecto.orden.dominio;
 
 import co.edu.proyecto.orden.dominio.descuentos.SinDescuento;
 import co.edu.proyecto.orden.dominio.excepciones.EstadoInvalidoException;
+import co.edu.proyecto.orden.dominio.excepciones.OrdenInvalidaException;
 import co.edu.proyecto.orden.dominio.impuestos.SinImpuesto;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -72,6 +76,31 @@ class OrdenTest {
         // Act + Assert
         assertThatThrownBy(() -> orden.calcularTotal(new SinDescuento(), new SinImpuesto()))
                 .isInstanceOf(EstadoInvalidoException.class);
+    }
+
+    @Test
+    void reconstituirRecuperaElEstadoYElTotalGuardados() {
+        // Arrange
+        OrdenId id = OrdenId.nuevo();
+        Dinero total = Dinero.de("59500", "COP");
+        Instant creadaEn = Instant.parse("2026-11-19T15:00:00Z");
+
+        // Act
+        Orden orden = Orden.reconstituir(id, "Ana Pérez", List.of(LIBRO), EstadoOrden.PAGADA, total, creadaEn);
+
+        // Assert
+        assertThat(orden.id()).isEqualTo(id);
+        assertThat(orden.estado()).isEqualTo(EstadoOrden.PAGADA);
+        assertThat(orden.total()).isEqualTo(total);
+        assertThat(orden.creadaEn()).isEqualTo(creadaEn);
+    }
+
+    @Test
+    void reconstituirSinItemsSeRechaza() {
+        // Act + Assert
+        assertThatThrownBy(() -> Orden.reconstituir(OrdenId.nuevo(), "Ana Pérez", List.of(),
+                EstadoOrden.CREADA, Dinero.cero("COP"), Instant.now()))
+                .isInstanceOf(OrdenInvalidaException.class);
     }
 
     @Test
