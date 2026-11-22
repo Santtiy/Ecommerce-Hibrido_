@@ -1,27 +1,9 @@
+# Lo común a los tres workers (conexión a RabbitMQ y Kafka, prefetch 1, 2 hilos, 3 reintentos y productor)
+# está en common-mensajeria/src/main/resources/worker-comun.yml.
 spring:
+  config:
+    import: classpath:worker-comun.yml
   application:
     name: notification-worker
   main:
     web-application-type: none
-
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:ecommerce}
-    password: ${RABBITMQ_PASSWORD:}
-    listener:
-      simple:
-        prefetch: 1                       # un mensaje a la vez por hilo
-        concurrency: 2                    # dos hilos consumiendo la cola
-        default-requeue-rejected: false   # tras agotar los reintentos va a failed_tasks
-        retry:
-          enabled: true
-          max-attempts: 3
-          initial-interval: 1000
-
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:29092}
-    producer:
-      # El resultado se envía como JSON en texto (StringSerializer por defecto).
-      properties:
-        max.block.ms: 5000

@@ -36,7 +36,9 @@ Reintentos de los consumidores: `DefaultErrorHandler` con 3 intentos y 1 s entre
 | `order_tasks_dlx` | fanout | Recibe lo que falló 3 veces |
 | `failed_tasks` | cola durable | Mensajes fallidos para revisar |
 
-Workers: `prefetch: 1`, `concurrency: 2`, 3 intentos con 1 s de espera, `default-requeue-rejected: false`.
+Workers: `prefetch: 1`, `concurrency: 2`, 3 intentos con 1 s de espera, `default-requeue-rejected: false`
+(en `common-mensajeria/src/main/resources/worker-comun.yml`, compartido por los tres). Cada worker solo aporta su
+regla (`ReglaTarea`), su cola y su topic; el procesamiento común lo hace `EjecutorTarea`.
 
 ## PostgreSQL (`backend/order-api/src/main/resources/schema.sql`)
 

@@ -17,7 +17,8 @@
       Configuración de Kafka y RabbitMQ que comparten los servicios. Kafka, RabbitMQ y Jackson son opcionales:
       no viajan a quien depende de este módulo, así cada servicio solo tiene en su classpath lo que ya declara
       (analytics y el dashboard no reciben RabbitMQ). No hay escaneo ni autoconfiguración: cada servicio
-      importa con @Import solo las clases que usa.
+      importa con @Import solo las clases que usa. EjecutorTarea (tareas/) se crea con @Bean en cada worker y
+      worker-comun.yml se carga con spring.config.import solo en los workers.
     -->
     <dependencies>
         <dependency>
@@ -38,6 +39,13 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Solo para EjecutorTareaTest: serializar Instant igual que el ObjectMapper de Spring Boot. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

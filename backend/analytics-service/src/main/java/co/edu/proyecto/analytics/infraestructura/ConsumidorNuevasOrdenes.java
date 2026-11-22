@@ -7,21 +7,19 @@ import co.edu.proyecto.analytics.so.OperacionES;
 import co.edu.proyecto.common.contratos.OrdenCreada;
 import co.edu.proyecto.common.nombres.GruposConsumidores;
 import co.edu.proyecto.common.nombres.Topicos;
-import org.apache.kafka.common.TopicPartition;
+import co.edu.proyecto.mensajeria.kafka.ConsumidorQueReleeTodo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.listener.AbstractConsumerSeekAware;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 /**
  * Segundo consumidor independiente de new_orders (grupo analytics-group): acumula ventas y
- * registra cada orden en la bitácora. Al arrancar relee el topic desde el inicio para reconstruir el total.
+ * registra cada orden en la bitácora. Al arrancar relee el topic desde el inicio
+ * para reconstruir el total (lo hace {@link ConsumidorQueReleeTodo}).
  */
 @Component
-public class ConsumidorNuevasOrdenes extends AbstractConsumerSeekAware {
+public class ConsumidorNuevasOrdenes extends ConsumidorQueReleeTodo {
 
     private static final Logger log = LoggerFactory.getLogger(ConsumidorNuevasOrdenes.class);
 
@@ -33,13 +31,6 @@ public class ConsumidorNuevasOrdenes extends AbstractConsumerSeekAware {
         this.agregador = agregador;
         this.bitacora = bitacora;
         this.monitor = monitor;
-    }
-
-    /** El estado vive en memoria: releer desde el inicio lo reconstruye tras un reinicio. */
-    @Override
-    public void onPartitionsAssigned(Map<TopicPartition, Long> asignaciones, ConsumerSeekCallback callback) {
-        super.onPartitionsAssigned(asignaciones, callback);
-        callback.seekToBeginning(asignaciones.keySet());
     }
 
     @KafkaListener(topics = Topicos.NUEVAS_ORDENES, groupId = GruposConsumidores.ANALYTICS)

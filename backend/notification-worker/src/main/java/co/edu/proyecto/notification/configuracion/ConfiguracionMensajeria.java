@@ -1,9 +1,12 @@
 package co.edu.proyecto.notification.configuracion;
 
+import co.edu.proyecto.common.contratos.ReglaTarea;
 import co.edu.proyecto.common.nombres.Colas;
 import co.edu.proyecto.common.nombres.Topicos;
 import co.edu.proyecto.mensajeria.rabbitmq.ConfiguracionRabbitBase;
 import co.edu.proyecto.mensajeria.rabbitmq.TopologiaWorker;
+import co.edu.proyecto.mensajeria.tareas.EjecutorTarea;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;
@@ -11,10 +14,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.KafkaTemplate;
+
+import java.time.Clock;
 
 /**
  * Mensajería de notification-worker. Lo común (JSON, fanout {@code order_tasks} y cola de fallidos) viene de
- * common-mensajeria; aquí solo se declara lo propio: su cola de trabajo enlazada al fanout y su topic de resultados.
+ * common-mensajeria; aquí solo se declara lo propio: su cola de trabajo enlazada al fanout, su topic de resultados
+ * y el {@link EjecutorTarea} que une su regla con ese topic.
  * Varios servicios declaran la misma topología a propósito: así el sistema arranca en cualquier orden.
  */
 @Configuration
@@ -35,5 +42,14 @@ public class ConfiguracionMensajeria {
     @Bean
     public Binding enlaceCola() {
         return TopologiaWorker.enlaceAlFanout(cola());
+    }
+
+    /**
+     * Procesamiento común de los workers aplicado a este: la regla llega por su interfaz {@link ReglaTarea}
+     * (desde ConfiguracionDominio) y el resultado va a su topic. KafkaTemplate y ObjectMapper los crea Spring Boot.
+     */
+    @Bean
+    public EjecutorTarea ejecutorTarea(ReglaTarea regla, KafkaTemplate<String, String> kafka, ObjectMapper json) {
+        return new EjecutorTarea(regla, Topicos.EVENTOS_NOTIFICACION, kafka, json, Clock.systemUTC());
     }
 }

@@ -27,3 +27,4 @@ Rutas relativas a `backend/order-api/src/main/java/co/edu/proyecto/orden/` salvo
 | Outbox (bandeja de salida) | `BandejaSalida`, `PublicadorBandejaSalida` | Que guardar la orden y publicar su evento no pueda quedar a medias |
 | Consumidor idempotente | `RegistrarResultadoService`, `TableroOrdenes`, `AgregadorVentas`, auditoría con `UNIQUE` | Que un mensaje repetido no cambie el resultado |
 | Puertos y adaptadores | `dominio/puertos/` ↔ `infraestructura/` | Probar el dominio y los casos de uso sin infraestructura |
+| Composición en los workers | `EjecutorTarea` (common-mensajeria) recibe la `ReglaTarea` y el topic de cada worker; `ReglaPago`, `ReglaInventario` y `ReglaNotificacion` cumplen el mismo contrato | Copiar el mismo consumidor en tres servicios: un worker nuevo solo aporta su regla, su cola y su topic |

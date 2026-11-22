@@ -52,8 +52,8 @@ Contratos que **no cambian** en la variante AWS: topics `new_orders` (3 particio
 `order-api`), `billing_events`, `inventory_events`, `notification_events` (1 partición, los crea cada
 worker); grupos `processor-group`, `analytics-group`, `dashboard-group`; exchanges `order_tasks`
 (fanout) y `order_tasks_dlx`; colas `*_queue` y `failed_tasks`; concurrencia 2 y prefetch 1 en los
-workers; `KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`. Todo eso está en el código Java y en los
-`application.yml`, que no cambiaron para AWS (después solo se les retiró la contraseña por
+workers; `KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`. Todo eso está en el código Java, en los
+`application.yml` y en `worker-comun.yml` (común a los workers), que no cambiaron para AWS (después solo se les retiró la contraseña por
 defecto; ver §7.1).
 
 ---
@@ -304,7 +304,7 @@ cifrado por el puerto 22, que ya está permitido para tu IP. Se cierra con `Ctrl
 * `ops/aws/detener-aws.sh` funciona aunque falte `.env` (usa valores de relleno que nunca llegan
   a ningún contenedor, porque `stop`/`down` no crean ni recrean nada).
   `ops/aws/exportar-imagenes.ps1` tampoco necesita `.env` en Windows.
-* Los `application.yml` ya no tienen contraseña por defecto (`${DB_PASSWORD:}`,
+* Los `application.yml` y `worker-comun.yml` ya no tienen contraseña por defecto (`${DB_PASSWORD:}`,
   `${RABBITMQ_PASSWORD:}`). En Docker no cambia nada: la variable del compose tiene prioridad.
   Las imágenes ya cargadas en EC2 conservan el valor antiguo dentro del jar hasta que se
   reconstruyan, pero no lo usan. La contraseña antigua sigue en el historial de Git: **no debe
